@@ -1,0 +1,104 @@
+About the MIMA
+--------------
+The MIMA (MInimal MAchine) is a hypothetical microprocessor
+used in teaching at the KIT.
+
+This program allows the user to write programs in Assembler and
+compile them into an ASCII-based memory map file, which can
+in turn be used by an interpreter.
+
+MIMA-Assembler
+--------------
+
+Integers can be given in decimal or hexadecimal (prefix with '$') format.
+Ex: $64 equals 100
+
+The MIMA uses a 24 Bit data word, parameters can be 20 Bits long at max.
+
+For the purposes of this document, 
+	<INT> should be substituted with an integer value
+	<STRING> should be substituted with an appropriate ASCII string
+	[] denotes an optional argument
+
+
+
+Directives
+----------
+
+*=<INT>
+	Sets the current memory position
+
+
+<STRING>=<INT>
+	Sets a global constant (similar to C's preprocessor '#define')
+
+
+Programmatic Statements (mnemonics)
+-----------------------------------
+Every line containing a mnemonic can be labelled by prefixing it with
+<STRING:LABELNAME>: <STATEMENT>
+The label will then be treated as a global constant containing its location
+in memory.
+
+
+DS [INT:CONST]
+	Store <CONST> at the current memory location. If not given, 0 is stored.
+	This is the only statement allowing the full 24 Bit word to be set
+
+LDC <INT:CONST>
+	Load <CONST> into the Accumulator.
+
+LDV <INT:ADDR>
+	Load the contents of memory cell <ADDR> into the Accumulator.
+
+STV <INT:ADDR>
+	Store the contents of the Accumulator to memory cell <ADDR>
+
+ADD <INT:ADDR>
+	Add the contents of memory cell <ADDR> to the accumulator
+
+AND <INT:ADDR>
+	AND's the content of cell <ADDR> with the accumulator.
+	Result is stored in Accumulator.
+
+OR  <INT:ADDR>
+	OR's the content of cell <ADDR> with the accumulator.
+	Result is stored in Accumulator.
+
+XOR <INT:ADDR>
+	XOR's the content of cell <ADDR> with the accumulator.
+	Result is stored in Accumulator.
+
+EQL <INT:ADDR>
+	Checks for equality of the accumulator's contents and the content
+	of the memory cell at <ADDR>. If they are equal, the accumulator
+	is set to -1, else it is set to 0.
+
+JMP <INT:ADDR>
+	Continue execution at specified address
+
+JMN <INT:ADDR>
+	Continue execution at specified address if accumulator's contents 
+	are negative
+
+LDIV <INT:ADDR>
+	Load indirect (Address to load from is in cell specified by parameter) 
+
+STIV <INT:ADDR>
+	Store indirect (Address to store to is in cell specified by parameter)
+
+JMS <INT:ADDR>
+	Jump to subroutine. Stores the address of the next instruction at <ADDR>
+	and jumps to <ADDR+1>
+
+JIND <INT:ADDR>
+	Jump indirect (Address to jump to is in cell specified by parameter)
+
+HALT	Stop execution
+NOT	Invert accumulator contents
+RAR	Perform right rotate on accumulator
+
+
+The MIMA has no floating- or fixed-point number support.
+
+-FJS 2012

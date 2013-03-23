@@ -1,0 +1,54 @@
+*				=		0
+ARR1: 			DS		5
+ARR2: 			DS		3
+ARR3: 			DS 		1
+ARR4: 			DS 		9
+
+*				=		$40
+ARRLEN: 		DS 		3
+
+*				=		$80
+POS_ONE: 		DS		 1
+NEG_ONE: 		DS		 -1
+TEMP:			DS 0
+CURELEM: 		DS 0
+CURPOS: 		DS 0
+	
+*				=		$100
+START:			LDV 64	;initialize current checked element to array length
+				STV CURELEM
+
+OUTERLOOP:		LDV CURELEM		;prepare element iteration
+				ADD NEG_ONE	
+				STV CURPOS		;only need to compare from current element downwards
+				JMN EXIT		;if comparison index would be negative, halt
+
+INNERLOOP:		LDIV CURPOS		;load current position value
+				NOT
+				ADD POS_ONE		;negate in two's complement
+				STV TEMP		;store
+				LDIV CURELEM	;load current elements value
+				ADD TEMP		;subtract position value
+				JMN SWAP		;swap if arr[curPos]>arr[curElem]
+				JMP NEXTPOS		;else, continue
+
+SWAP:			LDIV CURPOS		;load position value
+				STV TEMP		;store
+				LDIV CURELEM	;load element value
+				STIV CURPOS		;store to position
+				LDV TEMP		;load saved position value
+				STIV CURELEM	;store to element
+
+NEXTPOS:		LDV CURPOS		;to check next position
+				ADD NEG_ONE		;decrement position
+				JMN NEXTELEM	;if at end of array, continue in outer loop
+				STV CURPOS		;store decremented position
+				JMP INNERLOOP	;check next position
+
+NEXTELEM:		LDV CURELEM		;to check next element
+				ADD NEG_ONE		;decrement index
+				JMN EXIT		;if that would be <0, exit
+				STV CURELEM		;store result
+				JMP OUTERLOOP	;work
+
+EXIT:			HALT

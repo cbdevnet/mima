@@ -1,0 +1,21 @@
+MIMA Assembler workflow
+
+1. Write your code (See mima-assembler.txt and the example files)
+using notepad or some other plain-text editor
+
+2. Assemble using
+	mimasm file.txt			will produce out.mima
+or	mimasm file.txt file.mima	will produce file.mima
+
+3. If you're feeling adventurous, open the output file with a text
+editor and have a look at the memory layout
+
+4. Run the simulator in any of the following ways (or just run mimasim without any arguments to see whats possible)
+	mimasim in.mima			will simulate the execution and show you the memory contents on exit
+	mimasim in.mima out.txt		will create a listing of all execution steps and states in out.txt
+	mimasim in.mima out.txt -v	will do the same, but will also display the corresponding labels (if present)
+	mimasim in.mima -i		will allow you to step through the execution of your program interactively
+	mimasim in.mima -i -v		will do the same and display labels (if present)
+
+5. The previous step will show you if your program has the desired output
+or runs into any infinite loops, making it easier to debug.

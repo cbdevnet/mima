@@ -1,0 +1,19 @@
+;DEMO-Programm MIMA Assembler
+*			=		$10		;Speicherposition =0x10
+EINS:		DS		1			;Sprungmarke "EINS", speichert hier eine 1
+M_EINS:		DS		-1		;
+MAX			=		100		;Globale Konstante "MAX"=100
+ZAEHLER:	DS				;Zählervariable - nicht initialisiert
+
+*			=		128 ;Speicherposition =128 (Dezimal)
+START:		LDV		EINS	;Hauptprogramm für Zählschleife
+			STV		ZAEHLER
+SCHLEIFE: 	LDV		ZAEHLER
+			ADD		EINS
+			STV		ZAEHLER
+			LDC 	MAX
+			EQL		ZAEHLER
+			JMN 	FERTIG
+			JMP		SCHLEIFE
+			JMP TEST
+FERTIG:		HALT
