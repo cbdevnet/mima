@@ -7,20 +7,39 @@ This program allows the user to write programs in Assembler and
 compile them into an ASCII-based memory map file, which can
 in turn be used by an interpreter.
 
+About this document
+-------------------
+This document serves as reference manual to the implementation of the MIMA
+Architecture as present in mimasm/mimasim. It partly references content
+from %TI LINK TODO% (mainly the OP-Code listing).
+
+The mimasm/mimasim project is found at http://dev.cbcdn.com/kit/
+
+Comments, bug reports and feature requests should be directed to
+	cbdev on irc://irc.freenode.net/
+	cb@cbcdn.com
+
 MIMA-Assembler
 --------------
 
 Integers can be given in decimal or hexadecimal (prefix with '$') format.
 Ex: $64 equals 100
 
-The MIMA uses a 24 Bit data word, parameters can be 20 Bits long at max.
+The MIMA uses a 24 Bit data word, of wich the most significant 4 bit are
+always an OP-Code. If these 4 bits are equal to '0xF', the OP-Code spans
+the most significant 8 bits (extended OP-Code) and does not take
+a parameter. In all other cases, the remaining 20 bits are considered
+the parameter to the OP-Code.
+
+Integers are internally represented in two's complement.
+The MIMA has no floating- or fixed-point number support.
 
 For the purposes of this document, 
 	<INT> should be substituted with an integer value
 	<STRING> should be substituted with an appropriate ASCII string
+	<STATEMENT> should be substituted by any defined OP-Code/Parameter combination
+	<TYPE:NAME> denotes an argument of type TYPE, referred to as <NAME>
 	[] denotes an optional argument
-
-
 
 Directives
 ----------
@@ -30,7 +49,7 @@ Directives
 
 
 <STRING>=<INT>
-	Sets a global constant (similar to C's preprocessor '#define')
+	Sets a global constant (similar to C's preprocessor directive '#define')
 
 
 Programmatic Statements (mnemonics)
@@ -43,62 +62,81 @@ in memory.
 
 DS [INT:CONST]
 	Store <CONST> at the current memory location. If not given, 0 is stored.
-	This is the only statement allowing the full 24 Bit word to be set
+	This is the only statement allowing the full 24 bit memory word to be set.
 
 LDC <INT:CONST>
-	Load <CONST> into the Accumulator.
+	Load <CONST> into the accumulator.
+	OP-Code 0x0
 
 LDV <INT:ADDR>
-	Load the contents of memory cell <ADDR> into the Accumulator.
+	Load the contents of memory cell <ADDR> into the accumulator.
+	OP-Code 0x1
 
 STV <INT:ADDR>
-	Store the contents of the Accumulator to memory cell <ADDR>
+	Store the contents of the accumulator to memory cell <ADDR>
+	OP-Code 0x2
 
 ADD <INT:ADDR>
 	Add the contents of memory cell <ADDR> to the accumulator
+	OP-Code 0x3
 
 AND <INT:ADDR>
-	AND's the content of cell <ADDR> with the accumulator.
-	Result is stored in Accumulator.
+	Performs logical AND of content of cell <ADDR> and accumulator.
+	Result is stored in accumulator.
+	OP-Code 0x4
 
 OR  <INT:ADDR>
 	OR's the content of cell <ADDR> with the accumulator.
-	Result is stored in Accumulator.
+	Result is stored in accumulator.
+	OP-Code 0x5
 
 XOR <INT:ADDR>
 	XOR's the content of cell <ADDR> with the accumulator.
 	Result is stored in Accumulator.
+	OP-Code 0x6
 
 EQL <INT:ADDR>
 	Checks for equality of the accumulator's contents and the content
 	of the memory cell at <ADDR>. If they are equal, the accumulator
 	is set to -1, else it is set to 0.
+	OP-Code 0x7
 
 JMP <INT:ADDR>
 	Continue execution at specified address
+	OP-Code 0x8
 
 JMN <INT:ADDR>
 	Continue execution at specified address if accumulator's contents 
 	are negative
+	OP-Code 0x9
 
 LDIV <INT:ADDR>
 	Load indirect (Address to load from is in cell specified by parameter) 
+	OP-Code 0xA
 
 STIV <INT:ADDR>
 	Store indirect (Address to store to is in cell specified by parameter)
+	OP-Code 0xB
 
 JMS <INT:ADDR>
 	Jump to subroutine. Stores the address of the next instruction at <ADDR>
 	and jumps to <ADDR+1>
+	OP-Code 0xC
 
 JIND <INT:ADDR>
 	Jump indirect (Address to jump to is in cell specified by parameter)
+	OP-Code 0xD
 
-HALT	Stop execution
-NOT	Invert accumulator contents
-RAR	Perform right rotate on accumulator
+HALT
+	Stop execution
+	OP-Code 0xF0
 
+NOT
+	Invert accumulator contents
+	OP-Code 0xF1
 
-The MIMA has no floating- or fixed-point number support.
+RAR
+	Perform right rotate on accumulator
+	OP-Code 0xF2
 
--FJS 2012
+-FJS 2012-2013

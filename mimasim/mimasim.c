@@ -32,12 +32,18 @@
 //Will also pretty much make the output unreadable
 #define LISTDEBUG(a)
 
-/*
+/**
 
 MIMA Simulator
 Input file needs to be ASCII-Format Memory
 Map. See mimasm http:/dev.cbcdn.com/kit/mimasm/
 
+Comments, bug reports, feature requests:
+	cbdev on irc://irc.freenode.net/
+	cb@cbcdn.com
+
+History
+-------
 06062012 ~1200 Project begin
 06062012 1734 Basic functionality pass
 06062012 1924 Extended functionality pass
@@ -47,8 +53,10 @@ Map. See mimasm http:/dev.cbcdn.com/kit/mimasm/
 09062012 1435 Shortened setcell by a considerable amount. yay me.
 09062012 1458 Compiles under linux now. Interactive mode not as pretty.
 11062012 1034 Found a replacement for getch. Works just as fine.
+23032013 2310 Fixed 2 small memory leaks
+20052013 1904 Neatened up parts of the code
 
-FJS 2012
+FJS 2012-2013
 */
 
 #define OPCODE(a) (((a)&0xF00000)>>20)
@@ -241,6 +249,7 @@ void freemem(){
 	if(OPTIONS.dumpverbose||MEMORY.bottom.name){
 		printf(" END: Cell 0x00000 %s%s%swas at 0x%X\n",(MEMORY.bottom.name)?"(":"",(MEMORY.bottom.name)?MEMORY.bottom.name:"",(MEMORY.bottom.name)?") ":"",MEMORY.bottom.value);
 	}
+	
 	while(current!=NULL){
 		MEMCELL* temp=current;
 		
@@ -255,6 +264,11 @@ void freemem(){
 		current=current->next;		
 		free((void*)temp);//FIXME wat
 	}
+	
+	if(MEMORY.bottom.name){
+		free(MEMORY.bottom.name);
+	}
+
 	return;
 }
 
@@ -357,9 +371,6 @@ int main(int argc, char* argv[]){
 			printf("Could not open output file\n");
 			return 1;
 		}
-	}
-	
-	if(outfile){
 		fputs("Reading memory from ",output);
 		fputs(infile,output);
 		fputs("... ",output);
@@ -371,7 +382,7 @@ int main(int argc, char* argv[]){
 	
 	inputBuffer=(char*)malloc(filesize+1);
 	fread(inputBuffer,1,filesize,input);
-	inputBuffer[filesize]=0;//terminate for security
+	inputBuffer[filesize]=0;//terminate buffer
 	currentPos=inputBuffer;
 	
 	while(currentPos<inputBuffer+filesize-2){
@@ -584,6 +595,9 @@ int main(int argc, char* argv[]){
 	
 	freemem();
 	fclose(input);
+	if(output){
+		fclose(output);
+	}
 	free(inputBuffer);
 	return 0;
 }

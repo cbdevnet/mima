@@ -1,19 +1,18 @@
-;DEMO-Programm MIMA Assembler
-*			=		$10		;Speicherposition =0x10
-EINS:		DS		1			;Sprungmarke "EINS", speichert hier eine 1
-M_EINS:		DS		-1		;
-MAX			=		100		;Globale Konstante "MAX"=100
-ZAEHLER:	DS				;Zählervariable - nicht initialisiert
+									;MIMA-Assembler demonstration Code
+*			=		$10				;Jump to memory location 0x10
+POS_ONE:	DS		1				;Store decimal 1 here and declare label "POS_ONE"
+NEG_ONE:	DS		-1				;Store decimal -1 here and declare label "NEG_ONE"
+MAX			=		100				;Declare label "MAX" to expand to decimal 100
+COUNTER:	DS						;Declare label "COUNTER" to point to uninitalized cell
 
-*			=		128 ;Speicherposition =128 (Dezimal)
-START:		LDV		EINS	;Hauptprogramm für Zählschleife
-			STV		ZAEHLER
-SCHLEIFE: 	LDV		ZAEHLER
-			ADD		EINS
-			STV		ZAEHLER
-			LDC 	MAX
-			EQL		ZAEHLER
-			JMN 	FERTIG
-			JMP		SCHLEIFE
-			JMP TEST
-FERTIG:		HALT
+*			=		128 			;Jump to memory location 128
+START:		LDV		POS_ONE			;Declare label "START", load value at adress "POS_ONE" expands to into accumulator
+			STV		COUNTER			;Store current accumulator contents to the address "COUNTER" expands to
+LOOP:	 	LDV		COUNTER			;Declare label "LOOP", load the value at label "COUNTER" into accumulator
+			ADD		POS_ONE			;Add the content of the cell referenced by "POS_ONE" to the accumulator contents
+			STV		COUNTER			;Store accumulator contents to label "COUNTER"
+			LDC 	MAX				;Load value at label "MAX"
+			EQL		COUNTER			;If the accumulator is equal to the value at "COUNTER", set accumulator to -1
+			JMN 	FINISH			;If the accumulator's contents are negative, jump to label "FINISH"
+			JMP		LOOP			;Jump to label "LOOP"
+FINISH:		HALT					;Stop execution

@@ -7,8 +7,7 @@ using notepad or some other plain-text editor
 	mimasm file.txt			will produce out.mima
 or	mimasm file.txt file.mima	will produce file.mima
 
-3. If you're feeling adventurous, open the output file with a text
-editor and have a look at the memory layout
+3. If you're feeling adventurous, open the output file with a text editor and have a look at the memory layout
 
 4. Run the simulator in any of the following ways (or just run mimasim without any arguments to see whats possible)
 	mimasim in.mima			will simulate the execution and show you the memory contents on exit

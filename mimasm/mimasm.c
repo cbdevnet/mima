@@ -18,10 +18,11 @@ Preprocessor Constants dont work as expected //FIXED 05062012 1413
 Initialize empty DS' to 0 //FIXED 05062012 1143
 ORG's dont work properly without spaces //FIXED 05062012 2057
 
-Notes
+History
 ----------
 Added JMS + JIND 06062012 1909
 Fixed subtle bug with files not having a newline at the end 06062012 2231
+Documentation update, example code fixes 20052013 2014
 
 About
 ----------
@@ -34,7 +35,11 @@ Might want to watch stdout closely for that.
 If you're looking for an interpreter, I wrote one.
 Check http://dev.cbcdn.com/kit/mimasim/
 
-FJS 2012
+Comments, bug reports, feature requests:
+	cbdev on irc://irc.freenode.net/
+	cb@cbcdn.com
+
+FJS 2012-2013
 **/
 
 #define ULONG unsigned long
