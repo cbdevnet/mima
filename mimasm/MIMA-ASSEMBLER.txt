@@ -11,7 +11,7 @@ About this document
 -------------------
 This document serves as reference manual to the implementation of the MIMA
 Architecture as present in mimasm/mimasim. It partly references content
-from %TI LINK TODO% (mainly the OP-Code listing).
+from http://ti.ira.uka.de/Mima/mima-aufgaben.pdf (mainly the OP-Code listing).
 
 The mimasm/mimasim project is found at http://dev.cbcdn.com/kit/
 
