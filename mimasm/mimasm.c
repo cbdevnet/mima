@@ -23,6 +23,7 @@ History
 Added JMS + JIND 06062012 1909
 Fixed subtle bug with files not having a newline at the end 06062012 2231
 Documentation update, example code fixes 20052013 2014
+Fixed bug on line 276: "OR" actually _has_ length 2 - thanks Sinan! 04062013 0755
 
 About
 ----------
@@ -272,7 +273,7 @@ ULONG getopcode(char* mem, ULONG start){
 	}
 	
 	//printf(" [OPLEN %d] ",len);
-	if(len>2){
+	if(len>=2){
 		if(!strncmp(mem+start,"LD",2)){
 			switch(mem[start+2]){
 				case 'C'://LDC
