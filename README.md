@@ -17,8 +17,9 @@ This repository only contains the latest "release" tags. The latest "development
 Bug Bounty
 ==========
 The first 10 people to report a critical (as in, crashes on execution or missing/erroneous/broken functionality), 
-not yet submitted/known bug in the latest releases of either mimasim or mimasm to cb@cbcdn.com are eligible to 
-receive one Club Mate each (in Person, in Karlsruhe, at the KIT, in the FSMI) from me ;)
+not yet submitted/known bug or fix a listed known bug in the latest releases of either mimasim or mimasm are eligible,
+upon disclosure of said bug/fix to cb@cbcdn.com, to receive one Club Mate each (in Person, in Karlsruhe, at the KIT, 
+in the FSMI) from me ;)
 
 People yet eligible:
 
