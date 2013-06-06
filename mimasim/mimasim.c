@@ -42,6 +42,10 @@ Comments, bug reports, feature requests:
 	cbdev on irc://irc.freenode.net/
 	cb@cbcdn.com
 
+Known Bugs
+----------
+Interactive mode memory inspection is kinda buggy
+
 History
 -------
 06062012 ~1200 Project begin
