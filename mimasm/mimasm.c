@@ -24,6 +24,7 @@ Added JMS + JIND 06062012 1909
 Fixed subtle bug with files not having a newline at the end 06062012 2231
 Documentation update, example code fixes 20052013 2014
 Fixed bug on line 276: "OR" actually _has_ length 2 - thanks Sinan! 04062013 0755
+Fixed segfault on empty input file - Reported by drone| 06062013 2204
 
 About
 ----------
@@ -425,211 +426,216 @@ int main(int argc, char* argv[]){
 	rewind(input);
 	
 	printf("M:INFO: File is %d bytes long\n",filesize);
-
-	buffer=malloc(filesize+1);
 	
-	while(!feof(input)){
-		inBuf=fgetc(input);
-		switch(inBuf){
-			case ';':
-				comment=true;
-				break;
-			case ' ':
-			case '\t':
-				if(!hadspace&&!comment&&(buflen>1&&*(buffer+buflen-1)!='\n')){
-					*(buffer+buflen++)=' ';
-				}
-				hadspace=true;
-			case -1://fixes missing newline bug
-			case '\r':
-				break;
-			case '\n':
-				//if(!hadnewline&&(buflen>1&&*(buffer+buflen-1)!='\n')){
-					*(buffer+buflen++)='\n';
-					linecount++;
-				//}
-				hadnewline=true;
-				comment=false;
-				break;
-			
-			default:
-				hadnewline=false;
-				hadspace=false;
-				if(!comment){
-					*(buffer+buflen++)=inBuf;
-				}
-				break;
-		}
-		*(buffer+buflen+1)=0;
-	}	
-	printf("M:INFO: Read %d sentences\n",linecount);
-	
-	ULONG i=0;
-	ULONG currentmem=0;
-	ULONG warns=0;
-	char memstring[20],bufstring[20];
-	
-	printf("M:INFO: Building global table...\n");
-	while(i<buflen-1){
-		ULONG sent_start=i;
-		ULONG sent_end=i;
-		for(;sent_end<buflen-1;sent_end++){
-			if(buffer[sent_end]=='\n'){
-				break;
-			}
-		}
+	if(filesize<2){
+		printf("M:INFO: Invalid input, aborting\n");
+	}
+	else{
+		buffer=malloc(filesize+1);
 		
-		ULONG slen=sent_end-sent_start;
-		
-		//detect directives
-			if(buffer[sent_start]=='*'){
-				if(slen>=3){
-					//to int
-					for(;buffer[sent_start]!='=';sent_start++){
+		while(!feof(input)){
+			inBuf=fgetc(input);
+			switch(inBuf){
+				case ';':
+					comment=true;
+					break;
+				case ' ':
+				case '\t':
+					if(!hadspace&&!comment&&(buflen>1&&*(buffer+buflen-1)!='\n')){
+						*(buffer+buflen++)=' ';
 					}
-					currentmem=parseint(buffer,sent_start+1,sent_end);
-					printf(" M:INFO: ORG to 0x%X\n",currentmem);
-					currentmem--;
+					hadspace=true;
+				case -1://fixes missing newline bug
+				case '\r':
+					break;
+				case '\n':
+					//if(!hadnewline&&(buflen>1&&*(buffer+buflen-1)!='\n')){
+						*(buffer+buflen++)='\n';
+						linecount++;
+					//}
+					hadnewline=true;
+					comment=false;
+					break;
+				
+				default:
+					hadnewline=false;
+					hadspace=false;
+					if(!comment){
+						*(buffer+buflen++)=inBuf;
+					}
+					break;
+			}
+			*(buffer+buflen+1)=0;
+		}	
+		printf("M:INFO: Read %d sentences\n",linecount);
+		
+		ULONG i=0;
+		ULONG currentmem=0;
+		ULONG warns=0;
+		char memstring[20],bufstring[20];
+		
+		printf("M:INFO: Building global table...\n");
+		while(i<buflen-1){
+			ULONG sent_start=i;
+			ULONG sent_end=i;
+			for(;sent_end<buflen-1;sent_end++){
+				if(buffer[sent_end]=='\n'){
+					break;
 				}
 			}
-			else{
-				ULONG labelpos=label(buffer,sent_start);
-				if(labelpos>0){
-					printf(" [%c]",buffer[sent_start+labelpos-1]);
-					if(buffer[sent_start+labelpos-1]=='='){
-						switch(globalcreate(buffer,sent_start,parseint(buffer,sent_start+labelpos,sent_end))){
-							case STATE_WARN:
-								warns++;
-								break;
-							case STATE_ERR:
-								break;
+			
+			ULONG slen=sent_end-sent_start;
+			
+			//detect directives
+				if(buffer[sent_start]=='*'){
+					if(slen>=3){
+						//to int
+						for(;buffer[sent_start]!='=';sent_start++){
 						}
+						currentmem=parseint(buffer,sent_start+1,sent_end);
+						printf(" M:INFO: ORG to 0x%X\n",currentmem);
 						currentmem--;
 					}
-					else{
-						switch(globalcreate(buffer,sent_start,currentmem)){
-							case STATE_WARN:
-								warns++;
-								break;
-							case STATE_ERR:
-								break;
-						}
-					}
-					printf("\n");
-				}
-			}
-
-		currentmem++;
-		i=sent_end+1;
-	}
-	printf("M:INFO: Global Table built with %d warnings\n",warns);
-	
-	currentmem=0;
-	i=0;
-	//parse
-	
-	printf("M:INFO: Parsing\n");
-	while(i<buflen-1){
-		sprintf(memstring,"0x%06X ",currentmem);
-		ULONG sent_start=i;
-		ULONG sent_end=i;
-		for(;sent_end<buflen-1;sent_end++){
-			if(buffer[sent_end]=='\n'||buffer[sent_end]==0){
-				break;
-			}
-		}
-		
-		printf(" P:LINE: %d - %d: ",sent_start,sent_end);
-		ULONG slen=sent_end-sent_start;
-		
-		//parse here
-			//detect orgs & metas
-			if(buffer[sent_start]=='*'){
-				if(slen>=3){
-					//to int
-					for(;buffer[sent_start]!='=';sent_start++){
-					}
-					currentmem=parseint(buffer,sent_start+1,sent_end);
-					printf("ORG to 0x%X\n",currentmem);
-					currentmem--;
-				}
-			}
-			//detect blanks => LDC 0
-			else if(sent_start==sent_end){
-				fputs(memstring,output);
-				fputs("0x000000\n",output);
-				printf("BLANK -> LDC 0\n");
-			}
-			
-			else{
-				//handle labelling
-				ULONG labelpos=label(buffer,sent_start);
-				if(labelpos>0){
-					if(buffer[sent_start+labelpos-1]=='='){
-						//ignore line
-						printf("SKIP [META]\n");
-						i=sent_end+1;
-						continue;
-					}
-					else{
-						printf("[LABEL@+%d] ",labelpos);
-					}
-				}
-				
-				sent_start+=labelpos;
-				sent_start+=(buffer[sent_start]==' ')?1:0;
-				
-				//TODO if now blank, ldc 0 //should work
-	
-				if(buffer[sent_start]=='D'&&buffer[sent_start+1]=='S'){
-					//handle DS
-					ULONG storage=parseint(buffer,sent_start+2,sent_end);
-					fputs(memstring,output);
-					sprintf(bufstring,"0x%06X",MIMAWORD(storage));
-					fputs(bufstring,output);
-					if(labelpos>0){
-						fputs(" ;",output);
-						fwrite(buffer+(sent_end-slen),labelpos-1,1,output);
-					}
-					fputc('\n',output);
-					printf("DS 0x%06X\n",MIMAWORD(storage));
 				}
 				else{
-					//parse opcode
-					ULONG opcode=getopcode(buffer,sent_start);
-					
-					printf("OP 0x%X ",opcode);
-					fputs(memstring,output);
-					
-					if(opcode<=0xF){
-						//parse parameter
-						ULONG parameter=getparam(buffer,sent_start);
-						
-						printf("PARAM 0x%05X",MIMAPARAM(parameter));
-						sprintf(bufstring,"0x%X%05X",opcode,MIMAPARAM(parameter));
-						fputs(bufstring,output);
-					}
-					else{
-						sprintf(bufstring,"0x%06X",(opcode<<16));
-						fputs(bufstring,output);
-					}
-					
-					printf(" <= ");		
-					printlen(buffer,sent_start,sent_end-sent_start+(buffer[sent_end]=='\n'?0:1));//weird construct, but fixes an output bug
-					
+					ULONG labelpos=label(buffer,sent_start);
 					if(labelpos>0){
-						fputs(" ;",output);
-						fwrite(buffer+(sent_end-slen),labelpos-1,1,output);
+						printf(" [%c]",buffer[sent_start+labelpos-1]);
+						if(buffer[sent_start+labelpos-1]=='='){
+							switch(globalcreate(buffer,sent_start,parseint(buffer,sent_start+labelpos,sent_end))){
+								case STATE_WARN:
+									warns++;
+									break;
+								case STATE_ERR:
+									break;
+							}
+							currentmem--;
+						}
+						else{
+							switch(globalcreate(buffer,sent_start,currentmem)){
+								case STATE_WARN:
+									warns++;
+									break;
+								case STATE_ERR:
+									break;
+							}
+						}
+						printf("\n");
 					}
-					fputc('\n',output);
-					putc('\n',stdout);
+				}
+
+			currentmem++;
+			i=sent_end+1;
+		}
+		printf("M:INFO: Global Table built with %d warnings\n",warns);
+		
+		currentmem=0;
+		i=0;
+		//parse
+		
+		printf("M:INFO: Parsing\n");
+		while(i<buflen-1){
+			sprintf(memstring,"0x%06X ",currentmem);
+			ULONG sent_start=i;
+			ULONG sent_end=i;
+			for(;sent_end<buflen-1;sent_end++){
+				if(buffer[sent_end]=='\n'||buffer[sent_end]==0){
+					break;
 				}
 			}
 			
-		i=sent_end+1;
-		currentmem++;
+			printf(" P:LINE: %d - %d: ",sent_start,sent_end);
+			ULONG slen=sent_end-sent_start;
+			
+			//parse here
+				//detect orgs & metas
+				if(buffer[sent_start]=='*'){
+					if(slen>=3){
+						//to int
+						for(;buffer[sent_start]!='=';sent_start++){
+						}
+						currentmem=parseint(buffer,sent_start+1,sent_end);
+						printf("ORG to 0x%X\n",currentmem);
+						currentmem--;
+					}
+				}
+				//detect blanks => LDC 0
+				else if(sent_start==sent_end){
+					fputs(memstring,output);
+					fputs("0x000000\n",output);
+					printf("BLANK -> LDC 0\n");
+				}
+				
+				else{
+					//handle labelling
+					ULONG labelpos=label(buffer,sent_start);
+					if(labelpos>0){
+						if(buffer[sent_start+labelpos-1]=='='){
+							//ignore line
+							printf("SKIP [META]\n");
+							i=sent_end+1;
+							continue;
+						}
+						else{
+							printf("[LABEL@+%d] ",labelpos);
+						}
+					}
+					
+					sent_start+=labelpos;
+					sent_start+=(buffer[sent_start]==' ')?1:0;
+					
+					//TODO if now blank, ldc 0 //should work
+		
+					if(buffer[sent_start]=='D'&&buffer[sent_start+1]=='S'){
+						//handle DS
+						ULONG storage=parseint(buffer,sent_start+2,sent_end);
+						fputs(memstring,output);
+						sprintf(bufstring,"0x%06X",MIMAWORD(storage));
+						fputs(bufstring,output);
+						if(labelpos>0){
+							fputs(" ;",output);
+							fwrite(buffer+(sent_end-slen),labelpos-1,1,output);
+						}
+						fputc('\n',output);
+						printf("DS 0x%06X\n",MIMAWORD(storage));
+					}
+					else{
+						//parse opcode
+						ULONG opcode=getopcode(buffer,sent_start);
+						
+						printf("OP 0x%X ",opcode);
+						fputs(memstring,output);
+						
+						if(opcode<=0xF){
+							//parse parameter
+							ULONG parameter=getparam(buffer,sent_start);
+							
+							printf("PARAM 0x%05X",MIMAPARAM(parameter));
+							sprintf(bufstring,"0x%X%05X",opcode,MIMAPARAM(parameter));
+							fputs(bufstring,output);
+						}
+						else{
+							sprintf(bufstring,"0x%06X",(opcode<<16));
+							fputs(bufstring,output);
+						}
+						
+						printf(" <= ");		
+						printlen(buffer,sent_start,sent_end-sent_start+(buffer[sent_end]=='\n'?0:1));//weird construct, but fixes an output bug
+						
+						if(labelpos>0){
+							fputs(" ;",output);
+							fwrite(buffer+(sent_end-slen),labelpos-1,1,output);
+						}
+						fputc('\n',output);
+						putc('\n',stdout);
+					}
+				}
+				
+			i=sent_end+1;
+			currentmem++;
+		}
+		printf("M:INFO: Parser done\n");
 	}
-	printf("M:INFO: Parser done\n");
 	printf("M:INFO: Cleaning up\n");
 	
 	
