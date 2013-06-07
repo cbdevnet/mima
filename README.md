@@ -24,5 +24,5 @@ in the FSMI) from me ;)
 People yet eligible:
 
 * Sinan
-* drone|
-* Indidev
+* drone| (claimed)
+* Indidev (claimed)
