@@ -23,6 +23,6 @@ in the FSMI) from me ;)
 
 People yet eligible:
 
-* Sinan
+* Sinan (claimed)
 * drone| (claimed)
 * Indidev (claimed)
