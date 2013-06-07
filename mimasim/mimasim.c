@@ -59,6 +59,7 @@ History
 11062012 1034 Found a replacement for getch. Works just as fine.
 23032013 2310 Fixed 2 small memory leaks
 20052013 1904 Neatened up parts of the code
+07062013 1232 Fixed address range to 20 bits / data range to 24 bits
 
 FJS 2012-2013
 */
@@ -390,8 +391,8 @@ int main(int argc, char* argv[]){
 	currentPos=inputBuffer;
 	
 	while(currentPos<inputBuffer+filesize-2){
-		ULONG address=strtoul(currentPos,&currentPos,0);
-		ULONG value=strtoul(currentPos,&currentPos,0);
+		ULONG address=PARAMETER(strtoul(currentPos,&currentPos,0));
+		ULONG value=MIMAWORD(strtoul(currentPos,&currentPos,0));
 		//skip leading
 		for(;*currentPos!=';'&&*currentPos!='\n'&&*currentPos!=0;currentPos++){
 		}

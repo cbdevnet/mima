@@ -26,6 +26,7 @@ Documentation update, example code fixes 20052013 2014
 Fixed bug on line 276: "OR" actually _has_ length 2 - thanks Sinan! 04062013 0755
 Fixed segfault on empty input file - Reported by drone| 06062013 2204
 Fixed bug that allowed to jump to out-of-range addresses - Reported by Indidev & drone| 07062013 1120
+Limited address output length to the standard 20 bits - reported by drone| 07062013 1222
 
 About
 ----------
@@ -536,7 +537,7 @@ int main(int argc, char* argv[]){
 		
 		printf("M:INFO: Parsing\n");
 		while(i<buflen-1){
-			sprintf(memstring,"0x%06X ",currentmem);
+			sprintf(memstring,"0x%05X ",currentmem);
 			ULONG sent_start=i;
 			ULONG sent_end=i;
 			for(;sent_end<buflen-1;sent_end++){
