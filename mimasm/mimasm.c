@@ -493,7 +493,7 @@ int main(int argc, char* argv[]){
 						//to int
 						for(;buffer[sent_start]!='=';sent_start++){
 						}
-						currentmem=MIMAWORD(parseint(buffer,sent_start+1,sent_end));
+						currentmem=MIMAPARAM(parseint(buffer,sent_start+1,sent_end));
 						printf(" M:INFO: ORG to 0x%X\n",currentmem);
 						currentmem--;
 					}
@@ -525,7 +525,7 @@ int main(int argc, char* argv[]){
 					}
 				}
 
-			currentmem=MIMAWORD(++currentmem);
+			currentmem=MIMAPARAM(++currentmem);
 			i=sent_end+1;
 		}
 		printf("M:INFO: Global Table built with %d warnings\n",warns);
@@ -555,7 +555,7 @@ int main(int argc, char* argv[]){
 						//to int
 						for(;buffer[sent_start]!='=';sent_start++){
 						}
-						currentmem=MIMAWORD(parseint(buffer,sent_start+1,sent_end));
+						currentmem=MIMAPARAM(parseint(buffer,sent_start+1,sent_end));
 						printf("ORG to 0x%X\n",currentmem);
 						currentmem--;
 					}
@@ -633,7 +633,7 @@ int main(int argc, char* argv[]){
 				}
 				
 			i=sent_end+1;
-			currentmem=MIMAWORD(++currentmem);
+			currentmem=MIMAPARAM(++currentmem);
 		}
 		printf("M:INFO: Parser done\n");
 	}
