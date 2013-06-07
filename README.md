@@ -25,3 +25,4 @@ People yet eligible:
 
 * Sinan
 * drone|
+* Indidev

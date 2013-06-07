@@ -25,6 +25,7 @@ Fixed subtle bug with files not having a newline at the end 06062012 2231
 Documentation update, example code fixes 20052013 2014
 Fixed bug on line 276: "OR" actually _has_ length 2 - thanks Sinan! 04062013 0755
 Fixed segfault on empty input file - Reported by drone| 06062013 2204
+Fixed bug that allowed to jump to out-of-range addresses - Reported by Indidev & drone| 07062013 1120
 
 About
 ----------
@@ -492,7 +493,7 @@ int main(int argc, char* argv[]){
 						//to int
 						for(;buffer[sent_start]!='=';sent_start++){
 						}
-						currentmem=parseint(buffer,sent_start+1,sent_end);
+						currentmem=MIMAWORD(parseint(buffer,sent_start+1,sent_end));
 						printf(" M:INFO: ORG to 0x%X\n",currentmem);
 						currentmem--;
 					}
@@ -524,7 +525,7 @@ int main(int argc, char* argv[]){
 					}
 				}
 
-			currentmem++;
+			currentmem=MIMAWORD(++currentmem);
 			i=sent_end+1;
 		}
 		printf("M:INFO: Global Table built with %d warnings\n",warns);
@@ -554,7 +555,7 @@ int main(int argc, char* argv[]){
 						//to int
 						for(;buffer[sent_start]!='=';sent_start++){
 						}
-						currentmem=parseint(buffer,sent_start+1,sent_end);
+						currentmem=MIMAWORD(parseint(buffer,sent_start+1,sent_end));
 						printf("ORG to 0x%X\n",currentmem);
 						currentmem--;
 					}
@@ -632,7 +633,7 @@ int main(int argc, char* argv[]){
 				}
 				
 			i=sent_end+1;
-			currentmem++;
+			currentmem=MIMAWORD(++currentmem);
 		}
 		printf("M:INFO: Parser done\n");
 	}
