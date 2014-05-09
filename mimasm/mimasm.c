@@ -27,6 +27,7 @@ Fixed bug on line 276: "OR" actually _has_ length 2 - thanks Sinan! 04062013 075
 Fixed segfault on empty input file - Reported by drone| 06062013 2204
 Fixed bug that allowed to jump to out-of-range addresses - Reported by Indidev & drone| 07062013 1120
 Limited address output length to the standard 20 bits - reported by drone| 07062013 1222
+C89 Compliance, Warnings fixed 09052014 1520
 
 About
 ----------
@@ -43,7 +44,7 @@ Comments, bug reports, feature requests:
 	cbdev on irc://irc.freenode.net/
 	cb@cbcdn.com
 
-FJS 2012-2013
+FJS 2012-2014
 **/
 
 #define ULONG unsigned long

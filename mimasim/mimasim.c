@@ -60,8 +60,9 @@ History
 23032013 2310 Fixed 2 small memory leaks
 20052013 1904 Neatened up parts of the code
 07062013 1232 Fixed address range to 20 bits / data range to 24 bits
+09052014 1520 C89 compliance, Fixed warnings
 
-FJS 2012-2013
+FJS 2012-2014
 */
 
 #define OPCODE(a) (((a)&0xF00000)>>20)
