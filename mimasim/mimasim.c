@@ -301,9 +301,10 @@ int main(int argc, char* argv[]){
 	OPTIONS.dumpverbose=false;
 	OPTIONS.maxsteps=0;
 	ULONG entry=0;
+	int a;
 	
 	//parse arguments
-	for(int a=1;a<argc;a++){
+	for(a=1;a<argc;a++){
 		if(*argv[a]=='-'){
 			if(argv[a][1]=='i'||argv[a][1]=='I'){
 				printf("Using interactive mode\n");
@@ -418,8 +419,6 @@ int main(int argc, char* argv[]){
 		fputs(" OK\r\n",output);
 		fprintf(output,"[%8s][%10s][%8s][%6s][%10s][%8s][%8s][%-20s]\r\n","STEP","LABEL","IR   ","OP  ","PARAMETER","AKKU  ","IAR  "," MEM");
 	}
-	
-	char addrbuf[20];
 	
 	//simulation code goes here
 	MIMA.iar=entry;

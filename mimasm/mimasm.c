@@ -76,6 +76,7 @@ ULONG label(char*, ULONG);//get label length or 0 if none
 void printlen(char*, ULONG, ULONG);
 
 void printlen(char* mem, ULONG start, ULONG len){
+	ULONG i;
 	if(len==0){
 		//print until line end
 		for(;mem[start]!=0&&mem[start]!='\n';start++){
@@ -84,7 +85,7 @@ void printlen(char* mem, ULONG start, ULONG len){
 	}
 	else{
 		//print length
-		for(ULONG i=0;i<len;i++){
+		for(i=0;i<len;i++){
 			putc(mem[start+i],stdout);
 		}
 	}
@@ -96,7 +97,7 @@ ULONG globalvalue(char* mem, ULONG start){
 		return 0;
 	}
 	
-	ULONG llen=0;
+	ULONG llen=0, i;
 	bool end=false;
 	while(!end){
 		switch(mem[start+llen]){
@@ -112,7 +113,7 @@ ULONG globalvalue(char* mem, ULONG start){
 		}
 	}
 	
-	for(int i=0;globals[i];i++){
+	for(i=0;globals[i];i++){
 		if(llen==strlen(globals[i]->name)&&!strncmp(mem+start,globals[i]->name,llen)){
 			return globals[i]->value;
 		}
@@ -130,7 +131,7 @@ bool globalexists(char* mem, ULONG start){
 		return false;
 	}
 	
-	ULONG llen=0;
+	ULONG llen=0, i;
 	bool end=false;
 	while(!end){
 		switch(mem[start+llen]){
@@ -148,7 +149,7 @@ bool globalexists(char* mem, ULONG start){
 	
 	//printf("[LEN%d]",llen);
 	
-	for(int i=0;globals[i];i++){
+	for(i=0;globals[i];i++){
 		if(strlen(globals[i]->name)==llen&&!strncmp(mem+start,globals[i]->name,llen)){
 			//printf("[G:FOUND] ");
 			return true;
@@ -166,9 +167,11 @@ void freeglobals(){
 	if(!globals){
 		return;
 	}
+
+	int i;
 	
-	for(int i=0;globals[i]!=NULL;i++){
-		printf(" G:CLEAN: Freeing %10s @ %6X\n",globals[i]->name,globals[i]->value);
+	for(i=0;globals[i]!=NULL;i++){
+		printf(" G:CLEAN: Freeing %10s @ %6lX\n",globals[i]->name,globals[i]->value);
 		free(globals[i]->name);
 		free(globals[i]);
 	}
@@ -227,10 +230,12 @@ ULONG globalcreate(char* mem, ULONG start, ULONG value){
 	
 	globals[num_globs]->name[length-1]=0; //ensure proper termination. fixes GCC output issues
 	//trim trailing spaces
-	for(ULONG i=strlen(globals[num_globs]->name)-1;globals[num_globs]->name[i]==' ';i--){
+	ULONG i;
+	for(i=strlen(globals[num_globs]->name)-1;globals[num_globs]->name[i]==' ';i--){
 		globals[num_globs]->name[i]=0;
 	}
-	printf(" G:STORE: %s=0x%X",globals[num_globs]->name,globals[num_globs]->value);
+	printf(" G:STORE: %s=0x%lX",globals[num_globs]->name,globals[num_globs]->value);
+	return 0;
 }
 
 ULONG getparam(char* mem,ULONG start){
@@ -401,10 +406,10 @@ int main(int argc, char* argv[]){
 	long filesize;
 	ULONG linecount=1;
 	char* buffer=NULL;
-	ULONG bufferpointer=0,buflen=0;
+	ULONG buflen=0;
 	int inBuf;
 	char* outfile="out.mima";
-	bool comment=false,hadspace=false,hadnewline=false;
+	bool comment=false,hadspace=false;
 	
 	if(argc>2){
 		outfile=argv[2];
@@ -427,7 +432,7 @@ int main(int argc, char* argv[]){
 	filesize=ftell(input);
 	rewind(input);
 	
-	printf("M:INFO: File is %d bytes long\n",filesize);
+	printf("M:INFO: File is %ld bytes long\n",filesize);
 	
 	if(filesize<2){
 		printf("M:INFO: Invalid input, aborting\n");
@@ -455,12 +460,10 @@ int main(int argc, char* argv[]){
 						*(buffer+buflen++)='\n';
 						linecount++;
 					//}
-					hadnewline=true;
 					comment=false;
 					break;
 				
 				default:
-					hadnewline=false;
 					hadspace=false;
 					if(!comment){
 						*(buffer+buflen++)=inBuf;
@@ -469,7 +472,7 @@ int main(int argc, char* argv[]){
 			}
 			*(buffer+buflen+1)=0;
 		}	
-		printf("M:INFO: Read %d sentences\n",linecount);
+		printf("M:INFO: Read %lu sentences\n",linecount);
 		
 		ULONG i=0;
 		ULONG currentmem=0;
@@ -495,7 +498,7 @@ int main(int argc, char* argv[]){
 						for(;buffer[sent_start]!='=';sent_start++){
 						}
 						currentmem=MIMAPARAM(parseint(buffer,sent_start+1,sent_end));
-						printf(" M:INFO: ORG to 0x%X\n",currentmem);
+						printf(" M:INFO: ORG to 0x%lX\n",currentmem);
 						currentmem--;
 					}
 				}
@@ -529,7 +532,7 @@ int main(int argc, char* argv[]){
 			currentmem=MIMAPARAM(++currentmem);
 			i=sent_end+1;
 		}
-		printf("M:INFO: Global Table built with %d warnings\n",warns);
+		printf("M:INFO: Global Table built with %lu warnings\n",warns);
 		
 		currentmem=0;
 		i=0;
@@ -537,7 +540,7 @@ int main(int argc, char* argv[]){
 		
 		printf("M:INFO: Parsing\n");
 		while(i<buflen-1){
-			sprintf(memstring,"0x%05X ",currentmem);
+			sprintf(memstring,"0x%05lX ",currentmem);
 			ULONG sent_start=i;
 			ULONG sent_end=i;
 			for(;sent_end<buflen-1;sent_end++){
@@ -546,7 +549,7 @@ int main(int argc, char* argv[]){
 				}
 			}
 			
-			printf(" P:LINE: %d - %d: ",sent_start,sent_end);
+			printf(" P:LINE: %lu - %lu: ",sent_start,sent_end);
 			ULONG slen=sent_end-sent_start;
 			
 			//parse here
@@ -557,7 +560,7 @@ int main(int argc, char* argv[]){
 						for(;buffer[sent_start]!='=';sent_start++){
 						}
 						currentmem=MIMAPARAM(parseint(buffer,sent_start+1,sent_end));
-						printf("ORG to 0x%X\n",currentmem);
+						printf("ORG to 0x%lX\n",currentmem);
 						currentmem--;
 					}
 				}
@@ -579,7 +582,7 @@ int main(int argc, char* argv[]){
 							continue;
 						}
 						else{
-							printf("[LABEL@+%d] ",labelpos);
+							printf("[LABEL@+%lu] ",labelpos);
 						}
 					}
 					
@@ -592,32 +595,32 @@ int main(int argc, char* argv[]){
 						//handle DS
 						ULONG storage=parseint(buffer,sent_start+2,sent_end);
 						fputs(memstring,output);
-						sprintf(bufstring,"0x%06X",MIMAWORD(storage));
+						sprintf(bufstring,"0x%06lX",MIMAWORD(storage));
 						fputs(bufstring,output);
 						if(labelpos>0){
 							fputs(" ;",output);
 							fwrite(buffer+(sent_end-slen),labelpos-1,1,output);
 						}
 						fputc('\n',output);
-						printf("DS 0x%06X\n",MIMAWORD(storage));
+						printf("DS 0x%06lX\n",MIMAWORD(storage));
 					}
 					else{
 						//parse opcode
 						ULONG opcode=getopcode(buffer,sent_start);
 						
-						printf("OP 0x%X ",opcode);
+						printf("OP 0x%lX ",opcode);
 						fputs(memstring,output);
 						
 						if(opcode<=0xF){
 							//parse parameter
 							ULONG parameter=getparam(buffer,sent_start);
 							
-							printf("PARAM 0x%05X",MIMAPARAM(parameter));
-							sprintf(bufstring,"0x%X%05X",opcode,MIMAPARAM(parameter));
+							printf("PARAM 0x%05lX",MIMAPARAM(parameter));
+							sprintf(bufstring,"0x%lX%05lX",opcode,MIMAPARAM(parameter));
 							fputs(bufstring,output);
 						}
 						else{
-							sprintf(bufstring,"0x%06X",(opcode<<16));
+							sprintf(bufstring,"0x%06lX",(opcode<<16));
 							fputs(bufstring,output);
 						}
 						
