@@ -61,6 +61,7 @@ History
 20052013 1904 Neatened up parts of the code
 07062013 1232 Fixed address range to 20 bits / data range to 24 bits
 09052014 1520 C89 compliance, Fixed warnings
+15052014 1852 Breakpoint functionality
 
 FJS 2012-2014
 */
@@ -84,6 +85,7 @@ struct /*GLOBAL_OPTS*/ {
 	bool verbose;
 	bool dumpverbose;
 	ULONG maxsteps;
+	bool breakpoints;
 } OPTIONS;
 
 struct /*MEM*/ {
@@ -288,10 +290,13 @@ int main(int argc, char* argv[]){
 	MEMORY.bottom.name=NULL;
 
 	if(argc<2){
-		printf("Usage: mimasim [-i] [-dv] [-v] [-e <entrypoint>] [-l <maxsteps>] <infile> [<outfile>]\n");
+		printf("Usage: mimasim [-i] [-dv] [-v] [-b] [-e <entrypoint>] [-l <maxsteps>] <infile> [<outfile>]\n");
 		printf("\t-i\tInteractive execution\n");
 		printf("\t-v\tVerbose mode (resolve labels)\n");
-		printf("\t-dv\tverbose memory dump (all active cells)\n");
+		printf("\t-dv\tVerbose memory dump (all active cells)\n");
+		printf("\t-e\tSpecify execution entry point\n");
+		printf("\t-l\tLimit execution steps (force abort)\n");
+		printf("\t-b\tEnable breakpoints (Drop into interactive mode upon HALT)\n");
 		return 0;
 	}
 	
@@ -301,6 +306,7 @@ int main(int argc, char* argv[]){
 	OPTIONS.verbose=false;
 	OPTIONS.dumpverbose=false;
 	OPTIONS.maxsteps=0;
+	OPTIONS.breakpoints=false;
 	ULONG entry=0;
 	int a;
 	
@@ -321,7 +327,7 @@ int main(int argc, char* argv[]){
 				printf("Increased verbosity\n");
 				OPTIONS.verbose=true;
 			}
-			else if((argv[a][1]=='e'||argv[a][1]=='E')){
+			else if(argv[a][1]=='e'||argv[a][1]=='E'){
 				if(argc>a+1){
 					entry=strtoul(argv[++a],NULL,0);
 					printf("Using entry point 0x%06X\n",entry);
@@ -331,8 +337,8 @@ int main(int argc, char* argv[]){
 					return 1;
 				}
 			}
-			else if((argv[a][1]=='l'||argv[a][1]=='L')){
-			if(argc>a+1){
+			else if(argv[a][1]=='l'||argv[a][1]=='L'){
+				if(argc>a+1){
 					OPTIONS.maxsteps=strtoul(argv[++a],NULL,0);
 					printf("Doing %d steps at max\n",OPTIONS.maxsteps);
 				}
@@ -340,6 +346,10 @@ int main(int argc, char* argv[]){
 					printf("Limit steps flag was specified, but had no argument.\n");
 					return 1;
 				}
+			}
+			else if(argv[a][1]=='b'||argv[a][1]=='B'){
+				printf("Enabling breakpoint handling\n");
+				OPTIONS.breakpoints=true;
 			}
 			else{
 				printf("Unknown flag \"%s\"\n",argv[a]);
@@ -435,6 +445,7 @@ int main(int argc, char* argv[]){
 		printf("\ta\t\tprint accumulator\n");
 		printf("\ti\t\tprint iar\n");
 		printf("\tm\t\tquery memory contents\n");
+		printf("\tc\t\tcontinue execution\n");
 		printf("\tn|<retn>\texecute next step\n");
 	}
 	
@@ -480,7 +491,13 @@ int main(int argc, char* argv[]){
 					case 'I':
 						printf(" IAR: 0x%06X\n",MIMA.iar);
 						break;
-						
+
+					case 'c':
+					case 'C':
+						printf("\n");
+						interact=false;
+						next=true;
+						break;
 					default:
 						printf("Unrecognized input\n");
 						break;
@@ -565,8 +582,14 @@ int main(int argc, char* argv[]){
 			case 0xF:
 				switch(EXTOPCODE(MIMA.ir->value)){
 					case 0x0://HALT
-						MIMA.running=false;
 						printstate("HALT ",false,(void*)!NULL);//FIXME ugly
+						if(!OPTIONS.breakpoints){
+							MIMA.running=false;
+						}
+						else{
+							printf("M: Breakpoint hit, going interactive. Press 'c' to resume.\n");
+							interact=true;
+						}
 						break;
 					case 0x1://NOT
 						MIMA.akku=MIMAWORD(~MIMA.akku);
