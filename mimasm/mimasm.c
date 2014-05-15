@@ -397,7 +397,7 @@ ULONG label(char* mem, ULONG start){
 int main(int argc, char* argv[]){
 	if(argc<2){
 		printf("No input file. Usage: mimasm <infile> [<outfile>]\n");
-		printf("Standard output file is out.mima");
+		printf("Standard output file is out.mima\n");
 		return 0;
 	}
 	
