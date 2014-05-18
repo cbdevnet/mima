@@ -15,6 +15,7 @@ or	mimasm file.txt file.mima	will produce file.mima
 	mimasim in.mima out.txt -v	will do the same, but will also display the corresponding labels (if present)
 	mimasim in.mima -i		will allow you to step through the execution of your program interactively
 	mimasim in.mima -i -v		will do the same and display labels (if present)
+	mimasim in.mima -b -v -e 0x100	will start execution at address 0x100, display label names and treat HALT instructions as breakpoints
 
 5. The previous step will show you if your program has the desired output
 or runs into any infinite loops, making it easier to debug.
