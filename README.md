@@ -1,7 +1,7 @@
 MIMATools
 =========
 
-A set of tools to make testing/running/debugging/verifying code for the MIMA Architecture that is used in teaching at the Karlsruhe Institute of Technology easier.
+A set of tools to make testing/running/debugging/verifying code for the MIMA Architecture that is used in teaching at the Karlsruhe Institute of Technology (see http://ti.ira.uka.de/) easier.
 
 mimasm will take your code as input and output an ASCII representation of the resulting memory map (really useful for some assignments). The feature set is believed to be complete.
 
