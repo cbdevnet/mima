@@ -143,7 +143,7 @@ void printstate(char* cmd,bool deref,MEMCELL* modified){
 		//ir & op
 		fprintf(output," 0x%06X  %6s ",MIMA.ir->value,cmd);
 		
-		if(deref&&(!OPTIONS.verbose||(OPTIONS.verbose&&cell->name==NULL))||(!deref&&modified==NULL)){
+		if((deref&&(!OPTIONS.verbose||(OPTIONS.verbose&&cell->name==NULL)))||(!deref&&modified==NULL)){
 			fprintf(output,"   0x%06X ",param);
 		}
 		else{
@@ -219,7 +219,7 @@ MEMCELL* getcell(ULONG pos){
 			return it;
 		}
 		
-		if(forward&&it->next!=NULL&&it->next->mempos>pos||!forward&&it->prev!=NULL&&it->prev->mempos<pos){
+		if((forward&&it->next!=NULL&&it->next->mempos>pos)||(!forward&&it->prev!=NULL&&it->prev->mempos<pos)){
 			//insert
 			MEMCELL* new=(MEMCELL*)malloc(sizeof(MEMCELL));
 			new->name=NULL;
