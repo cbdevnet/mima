@@ -135,7 +135,7 @@ void printstate(char* cmd,bool deref,MEMCELL* modified){
 		printf("\t");
 	}
 	
-	printf(cmd);
+	printf("%s", cmd);
 	if(output){
 		//steps & label
 		fprintf(output," %8d  %10s ",MIMA.steps,(OPTIONS.verbose&&MIMA.ir->name)?MIMA.ir->name:"");
@@ -582,7 +582,7 @@ int main(int argc, char* argv[]){
 			case 0xF:
 				switch(EXTOPCODE(MIMA.ir->value)){
 					case 0x0://HALT
-						printstate("HALT ",false,(void*)!NULL);//FIXME ugly
+						printstate("HALT ",false,MIMA.ir);//FIXME ugly
 						if(!OPTIONS.breakpoints){
 							MIMA.running=false;
 						}
@@ -593,18 +593,18 @@ int main(int argc, char* argv[]){
 						break;
 					case 0x1://NOT
 						MIMA.akku=MIMAWORD(~MIMA.akku);
-						printstate("NOT ",false,(void*)!NULL);
+						printstate("NOT ",false,MIMA.ir);
 						break;
 					case 0x2://RAR
 						buf=MIMA.akku&1;
 						MIMA.akku>>=1;
 						buf<<=23;
 						MIMA.akku|=buf;
-						printstate("RAR ",false,(void*)!NULL);
+						printstate("RAR ",false,MIMA.ir);
 						break;
 					default://FAIL
 						printf("OP %X, EXOP %X ",OPCODE(MIMA.ir->value),EXTOPCODE(MIMA.ir->value));
-						printstate("FAIL ",false,(void*)!NULL);
+						printstate("FAIL ",false,MIMA.ir);
 						break;
 				}
 				break;
