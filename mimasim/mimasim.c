@@ -62,6 +62,7 @@ History
 07062013 1232 Fixed address range to 20 bits / data range to 24 bits
 09052014 1520 C89 compliance, Fixed warnings
 15052014 1852 Breakpoint functionality
+18052015 1829 Fix minor bug in JIND implementation
 
 FJS 2012-2014
 */
@@ -576,7 +577,7 @@ int main(int argc, char* argv[]){
 				break;
 			case 0xD://JIND
 				temp=getcell(PARAMETER(MIMA.ir->value));
-				MIMA.iar=temp->value;
+				MIMA.iar=PARAMETER(temp->value);
 				printstate("JIND ",true,NULL);
 				break;
 			case 0xF:
