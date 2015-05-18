@@ -358,7 +358,6 @@ ULONG getopcode(char* mem, ULONG start){
  
 ULONG parseint(char* mem,ULONG start,ULONG end){
 	int base=10;
-	bool negative=false;
 	for(;start<end;start++){
 		switch(mem[start]){
 			case '$':
@@ -530,7 +529,7 @@ int main(int argc, char* argv[]){
 					}
 				}
 
-			currentmem=MIMAPARAM(++currentmem);
+			currentmem=MIMAPARAM(currentmem+1);
 			i=sent_end+1;
 		}
 		printf("M:INFO: Global Table built with %lu warnings\n",warns);
@@ -638,7 +637,7 @@ int main(int argc, char* argv[]){
 				}
 				
 			i=sent_end+1;
-			currentmem=MIMAPARAM(++currentmem);
+			currentmem=MIMAPARAM(currentmem+1);
 		}
 		printf("M:INFO: Parser done\n");
 	}
@@ -649,4 +648,5 @@ int main(int argc, char* argv[]){
 	free(buffer);
 	fclose(input);
 	fclose(output);
+	return 0;
 }

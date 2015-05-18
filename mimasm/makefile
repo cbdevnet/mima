@@ -1,4 +1,5 @@
 .PHONY: clean
+CFLAGS=-Wall
 
 all: mimasm
 
