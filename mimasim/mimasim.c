@@ -446,7 +446,7 @@ int main(int argc, char* argv[]){
 		printf("\ti\t\tprint iar\n");
 		printf("\tm\t\tquery memory contents\n");
 		printf("\tc\t\tcontinue execution\n");
-		printf("\tn|<retn>\texecute next step\n");
+		printf("\tn\texecute next step\n");
 	}
 	
 	while(MIMA.running){
@@ -476,9 +476,6 @@ int main(int argc, char* argv[]){
 					
 					case 'n':
 					case 'N':
-					case 13:
-					case 10:
-						//printf("\n");
 						next=true;
 						break;
 					
@@ -497,6 +494,10 @@ int main(int argc, char* argv[]){
 						printf("\n");
 						interact=false;
 						next=true;
+						break;
+					case 10:
+					case 13:
+						printf("\n");
 						break;
 					default:
 						printf("Unrecognized input\n");
