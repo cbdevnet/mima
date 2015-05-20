@@ -437,7 +437,7 @@ int main(int argc, char* argv[]){
 		printf("M:INFO: Invalid input, aborting\n");
 	}
 	else{
-		buffer=malloc(filesize+1);
+		buffer=calloc(filesize+1, sizeof(char));
 		
 		while(!feof(input)){
 			inBuf=fgetc(input);
@@ -494,7 +494,7 @@ int main(int argc, char* argv[]){
 				if(buffer[sent_start]=='*'){
 					if(slen>=3){
 						//to int
-						for(;buffer[sent_start]!='=';sent_start++){
+						for(;buffer[sent_start]&&buffer[sent_start]!='=';sent_start++){
 						}
 						currentmem=MIMAPARAM(parseint(buffer,sent_start+1,sent_end));
 						printf(" M:INFO: ORG to 0x%lX\n",currentmem);
@@ -556,7 +556,7 @@ int main(int argc, char* argv[]){
 				if(buffer[sent_start]=='*'){
 					if(slen>=3){
 						//to int
-						for(;buffer[sent_start]!='=';sent_start++){
+						for(;buffer[sent_start]&&buffer[sent_start]!='=';sent_start++){
 						}
 						currentmem=MIMAPARAM(parseint(buffer,sent_start+1,sent_end));
 						printf("ORG to 0x%lX\n",currentmem);
