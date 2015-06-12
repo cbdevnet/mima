@@ -408,7 +408,7 @@ int main(int argc, char* argv[]){
 	}
 
 	inputBuffer=(char*)malloc(filesize+1);
-	fread(inputBuffer,1,filesize,input);
+	filesize=fread(inputBuffer,1,filesize,input);
 	inputBuffer[filesize]=0;//terminate buffer
 	currentPos=inputBuffer;
 	
