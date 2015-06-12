@@ -371,14 +371,14 @@ int main(int argc, char* argv[]){
 	}
 	
 	//read input file
-	ULONG filesize;
+	long filesize;
 	char* currentPos;
 	char* inputBuffer;
 	
 	input=fopen(infile,"rb");
 	if(!input){
 		printf("Could not open input file\n");
-		exit(1);
+		return 1;
 	}
 
 	if(outfile){
@@ -397,6 +397,11 @@ int main(int argc, char* argv[]){
 	filesize=ftell(input);
 	rewind(input);
 	
+	if(filesize<0){
+		perror("Error reading input file: ");
+		return 1;
+	}
+
 	inputBuffer=(char*)malloc(filesize+1);
 	fread(inputBuffer,1,filesize,input);
 	inputBuffer[filesize]=0;//terminate buffer

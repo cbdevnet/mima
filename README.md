@@ -60,7 +60,7 @@ Running `make` in the respective subfolders on a system with at least one of the
 The MIMA is a greatly simplified example of a microcomputer (hence the name, MInimal MAchine), used for demonstration and educational purposes in lectures at the [KIT](http://kit.edu/). The original work in developing the MIMA and its instruction set has been done by Prof. T. Asfour ([http://ti.ira.uka.de/](http://ti.ira.uka.de/)).
 
 ## Bug Bounty
-The first 10 people to report a critical (as in, crashes on execution or missing/erroneous/broken functionality), not yet submitted/known bug or fix a listed known bug in the latest releases of either mimasim or mimasm are eligible, upon disclosure of said bug/fix to cb@cbcdn.com, to receive one Club Mate each (in Person, in Karlsruhe, at the KIT, in the FSMI) from me ;)
+The first 10 people to report a critical (as in, crashes on execution or missing/erroneous/broken functionality), not yet submitted/known bug or fix a listed known bug in the latest releases of either mimasim or mimasm are eligible, upon disclosure of said bug/fix to cb@cbcdn.com, to receive a bottle of Club Mate (in Person, in Karlsruhe, at the KIT, in the FSMI) from me ;)
 
 ### People yet eligible:
 *   Sinan (claimed)
