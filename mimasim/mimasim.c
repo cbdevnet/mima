@@ -374,6 +374,11 @@ int main(int argc, char* argv[]){
 	long filesize;
 	char* currentPos;
 	char* inputBuffer;
+
+	if(!infile){
+		printf("No input file\n");
+		return 1;
+	}
 	
 	input=fopen(infile,"rb");
 	if(!input){
@@ -467,9 +472,13 @@ int main(int argc, char* argv[]){
 						printf("Addr ?> 0x");
 						unsigned addr=0;
 						fflush(stdin);
-						scanf("%x",&addr);
-						MEMCELL* temp=getcell(addr);
-						printf("0x%06X @ 0x%06X\n",temp->mempos,temp->value);
+						if(scanf("%x",&addr)!=EOF){
+							MEMCELL* temp=getcell(addr);
+							printf("0x%06X @ 0x%06X\n",temp->mempos,temp->value);
+						}
+						else{
+							printf(" !Failed\n");
+						}
 						break;
 				
 					case 'q':
