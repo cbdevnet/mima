@@ -38,7 +38,7 @@ The MIMA has no floating- or fixed-point number support.
 
 For the purposes of this document, 
 	<INT> should be substituted with an integer value
-	<STRING> should be substituted with an appropriate ASCII string
+	<STRING> should be substituted with an appropriate ASCII string not containing any spaces
 	<STATEMENT> should be substituted by any defined OP-Code/Parameter combination
 	<TYPE:NAME> denotes an argument of type TYPE, referred to as <NAME>
 	[] denotes an optional argument
