@@ -74,6 +74,8 @@ size_t label_length(char*, bool);	//get label length
 //assembler subroutines
 size_t scan_input(char*, char**);	//scan input file into buffer
 int scan_globals(char*, size_t);	//scan buffer for global definitions
+int parse_line(FILE*, uint32_t, char*, size_t);	//parse single sentence
+int parse_buffer(FILE*, char*, size_t);	//split buffer into sentences and process reorgs
 
 uint32_t global_value(char* buffer){
 	size_t u;
@@ -443,7 +445,6 @@ int scan_globals(char* buffer, size_t buffer_length){
 
 				switch(global_create(buffer + sentence_start, 
 							(buffer[sentence_start + label_len] == '=') ? parse_integer(buffer + sentence_start + label_len + 1) : memory_position)){
-					//TODO messages
 					case -1:
 						warnings++;
 						break;
@@ -561,7 +562,8 @@ int parse_buffer(FILE* output, char* buffer, size_t buffer_length){
 			switch(parse_line(output, memory_position, buffer + sentence_start, sentence_length)){
 				case -1:
 					//failure
-					//TODO
+					printf(" E:PRSR: Parser failed in sentence %d\n", current_sentence);
+					return -1;
 				case 1:
 					//ignore parsed line
 					memory_position--;
@@ -598,24 +600,31 @@ int main(int argc, char* argv[]){
 	scanned_length = scan_input(argv[1], &buffer);
 	if(scanned_length < 2){
 		printf("E:MAIN: Failed to read input file\n");
+		free(buffer);
 		return EXIT_FAILURE;
 	}
 
 	output = fopen(outfile, "wb");
 	if(!output){
 		printf("E:MAIN: Could not open output file\n");
+		free(buffer);
 		return EXIT_FAILURE;
 	}
 
 	printf("M:MAIN: Building global table\n");
 	if(scan_globals(buffer, scanned_length)){
 		printf("E:MAIN: Global scanning raised errors\n");
+		free(buffer);
+		fclose(output);
 		return EXIT_FAILURE;
 	}
 
 	printf("M:MAIN: Parsing statements\n");
 	if(parse_buffer(output, buffer, scanned_length)){
 		printf("E:MAIN: Parser raised irrecoverable error\n");
+		globals_free();
+		free(buffer);
+		fclose(output);
 		return EXIT_FAILURE;
 	}
 
