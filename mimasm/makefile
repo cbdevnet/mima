@@ -1,5 +1,5 @@
 .PHONY: clean
-CFLAGS=-Wall
+CFLAGS ?= -Wall -g
 
 all: mimasm
 
