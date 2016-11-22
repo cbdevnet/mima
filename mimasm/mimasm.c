@@ -351,7 +351,7 @@ size_t scan_input(char* infile, char** buffer){
 	*buffer = calloc(filesize + 1, sizeof(char));
 	if(!(*buffer)){
 		printf(" E:SCAN: Failed to allocate memory for input buffer\n");
-		fclose(input)
+		fclose(input);
 		return 0;
 	}
 
