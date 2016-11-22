@@ -615,6 +615,7 @@ int main(int argc, char* argv[]){
 	printf("M:MAIN: Building global table\n");
 	if(scan_globals(buffer, scanned_length)){
 		printf("E:MAIN: Global scanning raised errors\n");
+		globals_free();
 		free(buffer);
 		fclose(output);
 		return EXIT_FAILURE;
