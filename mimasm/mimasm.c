@@ -206,7 +206,7 @@ uint32_t parse_op(char* buffer){
 	}
 
 	if(*buffer == 0 || *buffer == '\n'){
-		printf(" [OPRES FAILED]");
+		printf("[OPRES FAILED] ");
 		return 0;
 	}
 
@@ -496,6 +496,12 @@ int parse_line(FILE* output, uint32_t memory_position, char* buffer, size_t line
 	}
 
 	for(; *operation == ' '; operation++){
+	}
+
+	if(!(*operation) || *operation == '\n'){
+		fprintf(output, "0x%05X 0x000000%s%.*s\n", memory_position, label_len ? " ;":"", (int)label_len, buffer);
+		printf("Blank line -> LDC 0\n");
+		return 0;
 	}
 
 	printf("%.*s => ", (int)(line_length - (operation - buffer)), operation);
