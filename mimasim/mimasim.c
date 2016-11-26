@@ -2,6 +2,9 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
+#include <stdint.h>
+#include <ctype.h>
+#include <inttypes.h>
 
 #ifndef _WIN32
 	#include <termios.h>
@@ -9,16 +12,16 @@
 
 	//this emulates conio.h's getch().
 	//via http://cboard.cprogramming.com/faq-board/27714-faq-there-getch-conio-equivalent-linux-unix.html
-	
+
 	int _getch(void){
-		struct termios canon,raw;
+		struct termios canon, raw;
 		int ch;
-		tcgetattr(STDIN_FILENO,&canon);
-		raw=canon;
-		raw.c_lflag&=~(ICANON|ECHO);
-		tcsetattr(STDIN_FILENO,TCSANOW,&raw);
-		ch=getchar();
-		tcsetattr(STDIN_FILENO,TCSANOW,&canon);
+		tcgetattr(STDIN_FILENO, &canon);
+		raw = canon;
+		raw.c_lflag &= ~(ICANON | ECHO);
+		tcsetattr(STDIN_FILENO, TCSANOW, &raw);
+		ch = getchar();
+		tcsetattr(STDIN_FILENO, TCSANOW, &canon);
 		return ch;
 	}
 
@@ -26,10 +29,6 @@
 #else
 	#define _GETCH_ getch
 #endif
-
-//change this to expand to (a) to see list debug messages.
-//Will also pretty much make the output unreadable
-#define LISTDEBUG(a)
 
 /**
 
@@ -62,50 +61,66 @@ History
 09052014 1520 C89 compliance, Fixed warnings
 15052014 1852 Breakpoint functionality
 18052015 1829 Fix minor bug in JIND implementation
-
-FJS 2012-2014
+26112016 1804 Code style update
+FJS 2012-2016
 */
 
-#define OPCODE(a) (((a)&0xF00000)>>20)
-#define EXTOPCODE(a) (((a)&0xF0000)>>16)
-#define PARAMETER(a) ((a)&0xFFFFF)
-#define MIMAWORD(a) ((a)&0xFFFFFF)
-
-#define ULONG unsigned
+#define OPCODE(a) (((a) & 0xF00000) >> 20)
+#define EXTOPCODE(a) (((a) & 0xF0000) >> 16)
+#define PARAMETER(a) ((a) & 0xFFFFF)
+#define MIMAWORD(a) ((a) & 0xFFFFFF)
 
 typedef struct _MEMCELL {
 	struct _MEMCELL* next;
 	struct _MEMCELL* prev;
 	char* name;
-	ULONG mempos;
-	ULONG value;
+	size_t mempos;
+	uint32_t value;
 } MEMCELL;
 
 struct /*GLOBAL_OPTS*/ {
 	bool verbose;
 	bool dumpverbose;
-	ULONG maxsteps;
+	uint64_t maxsteps;
 	bool breakpoints;
-} OPTIONS;
+	bool interact;
+	char* input;
+	char* output;
+} OPTIONS = {
+	.verbose = false,
+	.dumpverbose = false,
+	.maxsteps = 0,
+	.breakpoints = false,
+	.interact = false,
+	.input = NULL,
+	.output = NULL
+};
 
 struct /*MEM*/ {
 	MEMCELL bottom;
 	MEMCELL* top;
-} MEMORY;
+} MEMORY = {
+	.bottom = {},
+	.top = &MEMORY.bottom
+};
 
 struct /*MIMA*/{
 	MEMCELL* ir;
-	ULONG iar;
-	ULONG akku;
-	ULONG steps;
+	uint32_t iar;
+	uint32_t akku;
+	uint64_t steps;
 	bool running;
-} MIMA;
-
-FILE *input=NULL,*output=NULL;
+} MIMA = {
+	.ir = NULL,
+	.iar = 0,
+	.akku = 0,
+	.steps = 1,
+	.running = true
+};
 
 //Linked List Prototypes
-void setcell(ULONG, ULONG); //set cell to value
-MEMCELL* getcell(ULONG); //get cell
+int setcell(size_t, uint32_t, char*); //set cell to value
+MEMCELL* getcell(size_t); //get cell
 void freemem(); //free list
 
 /*
@@ -116,179 +131,403 @@ point in execution. Also I liked the challenge of
 implementing it.
 */
 
-void printstate(char*,bool,MEMCELL*); //pretty-print cell name, address and value
+void print_state(char* cmd, bool memory_accessed, MEMCELL* modified, FILE* output){
+	MEMCELL* cell = NULL;
 
-void printstate(char* cmd,bool deref,MEMCELL* modified){
-	ULONG param=PARAMETER(MIMA.ir->value);
-	MEMCELL* cell;
-	
-	if(deref){
-		cell=getcell(param);
+	if(memory_accessed){
+		cell = getcell(PARAMETER(MIMA.ir->value));
 	}
-	
-	printf("[%5d] [@0x%06X] ",MIMA.steps,MIMA.ir->mempos);
-	
-	if(MIMA.ir->name&&OPTIONS.verbose){
-		printf("[%s] ",MIMA.ir->name);
+
+	//steps & current instruction counter
+	printf("[%5" PRIu64 "] [@0x%06zX] ", MIMA.steps, MIMA.ir->mempos);
+
+	//labelling
+	if(MIMA.ir->name && OPTIONS.verbose){
+		printf("[%s] ", MIMA.ir->name);
 	}
 	else{
 		printf("\t");
 	}
-	
-	printf("%s", cmd);
+
+	//instruction
+	printf("%s ", cmd);
+
+	//parameter
+	if(memory_accessed){
+		if(OPTIONS.verbose && cell->name){
+			printf("%s (0x%06X)", cell->name, cell->value);
+		}
+		else{
+			printf("0x%06zX(@0x%06X)", cell->mempos, cell->value);
+		}
+	}
+	else if(!modified){
+		printf("0x%06X", PARAMETER(MIMA.ir->value));
+	}
+	printf("\n");
+
+	//file output
 	if(output){
 		//steps & label
-		fprintf(output," %8d  %10s ",MIMA.steps,(OPTIONS.verbose&&MIMA.ir->name)?MIMA.ir->name:"");
+		fprintf(output, " %8" PRIu64 "  %10s ", MIMA.steps, (OPTIONS.verbose && MIMA.ir->name) ? MIMA.ir->name:"");
 		//ir & op
-		fprintf(output," 0x%06X  %6s ",MIMA.ir->value,cmd);
-		
-		if((deref&&(!OPTIONS.verbose||(OPTIONS.verbose&&cell->name==NULL)))||(!deref&&modified==NULL)){
-			fprintf(output,"   0x%06X ",param);
+		fprintf(output, " 0x%06X  %6s ", MIMA.ir->value, cmd);
+
+		//parameter
+		if((memory_accessed && (!OPTIONS.verbose || (OPTIONS.verbose && !cell->name)))
+				|| (!memory_accessed && !modified)){
+			fprintf(output,"   0x%06X ", PARAMETER(MIMA.ir->value));
 		}
 		else{
-			fprintf(output," %10s ",(deref&&OPTIONS.verbose&&cell->name!=NULL)?cell->name:"");
+			fprintf(output," %10s ", (memory_accessed && OPTIONS.verbose && cell->name) ? cell->name:"");
 		}
-		
-		fprintf(output," 0x%06X  0x%06X ",MIMA.akku,MIMA.iar);
-		
-		if(modified&&deref){
-			if(modified->name&&OPTIONS.verbose){
-				fprintf(output," %s",modified->name);
+
+		//registers
+		fprintf(output," 0x%06X  0x%06X ", MIMA.akku, MIMA.iar);
+
+		//memory accesses
+		if(modified && memory_accessed){
+			if(modified->name && OPTIONS.verbose){
+				fprintf(output, " %s", modified->name);
 			}
 			else{
-				fprintf(output," 0x%06X",modified->mempos);
+				fprintf(output, " 0x%06zX", modified->mempos);
 			}
-			fprintf(output," = 0x%06X",modified->value);
+			fprintf(output, " = 0x%06X", modified->value);
 		}
-		fputs("\r\n",output);
-	}
-	
-	if(!deref){
-		if(modified!=NULL){
-			printf("\n");
-		}
-		else{
-			printf("0x%06X\n",param);
-		}
-	}
-	else if(OPTIONS.verbose&&cell->name){
-		printf("%s (0x%06X)\n",cell->name,cell->value);
-	}
-	else{
-		printf("0x%06X(@0x%06X)\n",cell->mempos,cell->value);
+		fputs("\n", output);
 	}
 }
 
-MEMCELL* getcell(ULONG pos){
-	LISTDEBUG(printf(" GET 0x%X ",pos));
-	if(pos>MEMORY.top->mempos){
-		LISTDEBUG(printf("INS TOP %d@0x0\n",pos));
+MEMCELL* getcell(size_t pos){
+	MEMCELL* cell = &MEMORY.bottom, *insert = NULL;
+	bool forward = true;
+
+	if(pos > MEMORY.top->mempos){
 		//create at top
-		MEMCELL* new=(MEMCELL*)malloc(sizeof(MEMCELL));
-		new->mempos=pos;
-		new->name=NULL;
-		new->value=0;
-		
+		cell = calloc(1, sizeof(MEMCELL));
+		cell->mempos = pos;
+
 		//mount
-		new->next=NULL;
-		new->prev=MEMORY.top;
-		MEMORY.top->next=new;
-		MEMORY.top=new;
-		return new;
+		cell->prev = MEMORY.top;
+		MEMORY.top->next = cell;
+		MEMORY.top = cell;
+		return cell;
 	}
-	
-	bool forward=true;
-	MEMCELL* it=&MEMORY.bottom;
-	
-	ULONG delta=MEMORY.top->mempos-pos;
-	if(delta<(MEMORY.top->mempos/2)){
+
+	if(MEMORY.top->mempos - pos < MEMORY.top->mempos / 2){
 		//start from top
-		forward=false;
-		it=MEMORY.top;
-		LISTDEBUG(printf("TRAV top | "));
+		forward = false;
+		cell = MEMORY.top;
 	}
-	else{
-		LISTDEBUG(printf("TRAV bot | "));
-	}
-	
-	while(it!=NULL){
-		
-		if(it->mempos==pos){
-			LISTDEBUG(printf("FOUND %d@0x%X\n",it->mempos,it->value));
-			return it;
+
+	for(; cell; cell = forward ? cell->next:cell->prev){
+		if(cell->mempos == pos){
+			return cell;
 		}
-		
-		if((forward&&it->next!=NULL&&it->next->mempos>pos)||(!forward&&it->prev!=NULL&&it->prev->mempos<pos)){
+
+		if((forward && cell->next && cell->next->mempos > pos)
+				|| (!forward && cell->prev && cell->prev->mempos < pos)){
 			//insert
-			MEMCELL* new=(MEMCELL*)malloc(sizeof(MEMCELL));
-			new->name=NULL;
-			new->mempos=pos;
-			new->value=0;
-		
+			insert = calloc(1, sizeof(MEMCELL));
+			if(!insert){
+				printf("Failed to allocate memory\n");
+				return NULL;
+			}
+			insert->mempos = pos;
+
 			//mount
-			new->next=forward?(it->next):(it);
-			new->prev=forward?(it):(it->prev);
+			insert->next = forward ? cell->next:cell;
+			insert->prev = forward ? cell:cell->prev;
 			if(forward){
-				it->next->prev=new;
-				it->next=new;
+				cell->next->prev = insert;
+				cell->next = insert;
 			}
 			else{
-				it->prev->next=new;
-				it->prev=new;
+				cell->prev->next = insert;
+				cell->prev = insert;
 			}
-			LISTDEBUG(printf("INS %d@0x0 OK\n",pos));
-			return it;
+			return insert;
 		}
-		
-		it=forward?(it->next):(it->prev);
 	}
-	LISTDEBUG(printf("FAIL\n"));
 	return NULL;
 }
 
-void setcell(ULONG pos, ULONG value){
-	//just realized, this is a one-liner. ohwell, overengineering ftw. //09062012 1434
-	getcell(pos)->value=value;
+int setcell(size_t pos, uint32_t value, char* comment){
+	MEMCELL* cell =	getcell(pos);
+	size_t length;
+	if(!cell){
+		return -1;
+	}
+
+	cell->value = value;
+	if(comment && *comment == ';'){
+		comment++;
+
+		for(length = 0; comment[length] && comment[length] != '\n'; length++){
+		}
+
+		//read comment and store
+		if(cell->name){
+			free(cell->name);
+		}
+		cell->name = calloc(length + 1, sizeof(char));
+		if(!cell->name){
+			printf("Failed to allocate memory\n");
+			return -1;
+		}
+		strncpy(cell->name, comment, length);
+	}
+	return 0;
 }
 
 void freemem(){
-	//FIXME the output in here could be done nicer
-	MEMCELL* current=MEMORY.bottom.next;
-	if(OPTIONS.dumpverbose||MEMORY.bottom.name){
-		printf(" END: Cell 0x00000 %s%s%swas at 0x%X\n",(MEMORY.bottom.name)?"(":"",(MEMORY.bottom.name)?MEMORY.bottom.name:"",(MEMORY.bottom.name)?") ":"",MEMORY.bottom.value);
-	}
-	
-	while(current!=NULL){
-		MEMCELL* temp=current;
-		
-		if(OPTIONS.dumpverbose||temp->name){
-			printf(" END: Cell 0x%05X %s%s%swas at 0x%X\n",temp->mempos,(temp->name)?"(":"",(temp->name)?temp->name:"",(temp->name)?") ":"",temp->value);
+	MEMCELL* cell = &MEMORY.bottom;
+
+	for(; cell; cell = cell->next){
+		if(OPTIONS.dumpverbose || cell->name){
+			printf(" END: Cell 0x%05zX %s%s%swas at 0x%X\n", cell->mempos, cell->name ? "(":"", cell->name ? cell->name:"", cell->name ? ") ":"", cell->value);
 		}
-		
-		if(current->name){
-			free(current->name);
+
+		if(cell->name){
+			free(cell->name);
 		}
-		
-		current=current->next;		
-		free((void*)temp);//FIXME wat
+
+		if(cell->prev && cell->prev != &MEMORY.bottom){
+			free(cell->prev);
+		}
+
+		if(!(cell->next)){
+			free(cell);
+			break;
+		}
 	}
-	
-	if(MEMORY.bottom.name){
-		free(MEMORY.bottom.name);
+}
+
+int args_parse(int argc, char** argv){
+	unsigned a;
+
+	for(a = 1; a < argc; a++){
+		if(argv[a][0] == '-'){
+			switch(tolower(argv[a][1])){
+				case 'i':
+					printf("Using interactive mode\n");
+					OPTIONS.interact = true;
+					break;
+				case 'd':
+					if(tolower(argv[a][2] == 'v')){
+						printf("Setting verbose dump flag\n");
+						OPTIONS.dumpverbose = true;
+					}
+					break;
+				case 'v':
+					printf("Increased verbosity\n");
+					OPTIONS.verbose = true;
+					break;
+				case 'e':
+					if(argc > a + 1){
+						MIMA.iar = strtoul(argv[++a], NULL, 0);
+						printf("Using entry point 0x%06X\n", MIMA.iar);
+					}
+					else{
+						printf("Entry point flag was specified, but had no argument.\n");
+						return 1;
+					}
+					break;
+				case 'l':
+					if(argc > a + 1){
+						OPTIONS.maxsteps = strtoul(argv[++a], NULL, 0);
+						printf("Doing %" PRIu64 " steps at max\n", OPTIONS.maxsteps);
+					}
+					else{
+						printf("Limit steps flag was specified, but had no argument.\n");
+						return 1;
+					}
+					break;
+				case 'b':
+					printf("Enabling breakpoint handling\n");
+					OPTIONS.breakpoints = true;
+					break;
+				default:
+					printf("Unknown flag \"%s\"\n", argv[a]);
+					return 1;
+			}
+		}
+		else{
+			if(!OPTIONS.input){
+				printf("Using input %s\n", argv[a]);
+				OPTIONS.input = argv[a];
+			}
+			else if(!OPTIONS.output){
+				printf("Using output %s\n", argv[a]);
+				OPTIONS.output = argv[a];
+			}
+			else{
+				printf("Could not assign parameter \"%s\"\n", argv[a]);
+				return 1;
+			}
+		}
+	}
+	return 0;
+}
+
+int scan_input(){
+	FILE* input;
+	long filesize;
+	char* file;
+	char* scan;
+	size_t address;
+	uint32_t value;
+
+	input = fopen(OPTIONS.input, "r");
+	if(!input){
+		printf("Could not open input file\n");
+		return 1;
 	}
 
-	return;
+	fseek(input, 0, SEEK_END);
+	filesize = ftell(input);
+	rewind(input);
+
+	if(filesize < 0){
+		perror("Error reading input file: ");
+		return 1;
+	}
+
+	file = calloc(filesize + 1, sizeof(char));
+	if(!file){
+		printf("Failed to allocate buffer\n");
+		fclose(input);
+		return 1;
+	}
+
+	if(fread(file, 1, filesize, input) != filesize){
+		printf("Failed to read input file\n");
+		fclose(input);
+		free(file);
+		return 1;
+	}
+
+	scan = file;
+	while(scan - file < filesize){
+		address = PARAMETER(strtoul(scan, &scan, 0));
+		value = MIMAWORD(strtoul(scan, &scan, 0));
+
+		//skip leading
+		for(; *scan && *scan != ';' && *scan != '\n'; scan++){
+		}
+
+		if(setcell(address, value, scan)){
+			return 1;
+		}
+
+		//skip to newline
+		for(; *scan && *scan != '\n'; scan++){
+		}
+		scan++;
+	}
+
+	free(file);
+	fclose(input);
+	return 0;
+}
+
+int simulate_step(FILE* output){
+	MIMA.ir = getcell(MIMA.iar);
+	MIMA.iar = PARAMETER(MIMA.iar + 1);
+	switch(OPCODE(MIMA.ir->value)){
+		case 0x0: //LDC
+			MIMA.akku = PARAMETER(MIMA.ir->value);
+			print_state("LDC", false, NULL, output);
+			break;
+		case 0x1: //LDV
+			MIMA.akku = getcell(PARAMETER(MIMA.ir->value))->value;
+			print_state("LDV", true, NULL, output);
+			break;
+		case 0x2: //STV
+			setcell(PARAMETER(MIMA.ir->value), MIMA.akku, NULL);
+			print_state("STV", true, getcell(PARAMETER(MIMA.ir->value)), output);
+			break;
+		case 0x3: //ADD
+			MIMA.akku = MIMAWORD(MIMA.akku + getcell(PARAMETER(MIMA.ir->value))->value);
+			print_state("ADD", true, NULL, output);
+			break;
+		case 0x4: //AND
+			MIMA.akku &= getcell(PARAMETER(MIMA.ir->value))->value;
+			print_state("AND", true, NULL, output);
+			break;
+		case 0x5: //OR
+			MIMA.akku |= getcell(PARAMETER(MIMA.ir->value))->value;
+			print_state("OR", true, NULL, output);
+			break;
+		case 0x6: //XOR
+			MIMA.akku ^= getcell(PARAMETER(MIMA.ir->value))->value;
+			print_state("XOR", true, NULL, output);
+			break;
+		case 0x7: //EQL
+			MIMA.akku = (MIMA.akku == getcell(PARAMETER(MIMA.ir->value))->value) ? MIMAWORD(-1):0;
+			print_state("EQL", true, NULL, output);
+			break;
+		case 0x8: //JMP
+			MIMA.iar = PARAMETER(MIMA.ir->value);
+			print_state("JMP", true, NULL, output);
+			break;
+		case 0x9: //JMN
+			if(MIMA.akku & 0x800000){
+				MIMA.iar = PARAMETER(MIMA.ir->value);
+			}
+			print_state("JMN", true, NULL, output);
+			break;
+		case 0xA: //LDIV
+			MIMA.akku = getcell(getcell(PARAMETER(MIMA.ir->value))->value)->value;
+			print_state("LDIV", true, NULL, output);
+			break;
+		case 0xB: //STIV
+			setcell(getcell(PARAMETER(MIMA.ir->value))->value, MIMA.akku, NULL);
+			print_state("STIV", true, getcell(getcell(PARAMETER(MIMA.ir->value))->value), output);
+			break;
+		case 0xC: //JMS
+			setcell(PARAMETER(MIMA.ir->value), MIMA.iar, NULL);
+			MIMA.iar = PARAMETER(MIMA.ir->value) + 1;
+			print_state("JMS", true, getcell(PARAMETER(MIMA.ir->value)), output);
+			break;
+		case 0xD: //JIND
+			MIMA.iar = PARAMETER(getcell(PARAMETER(MIMA.ir->value))->value);
+			print_state("JIND", true, NULL, output);
+			break;
+		case 0xF:
+			switch(EXTOPCODE(MIMA.ir->value)){
+				case 0x0: //HALT
+					print_state("HALT", false, MIMA.ir, output);
+					if(!OPTIONS.breakpoints){
+						MIMA.running = false;
+					}
+					else{
+						printf("M: Breakpoint hit, going interactive. Press 'c' to resume.\n");
+						OPTIONS.interact = true;
+					}
+					break;
+				case 0x1: //NOT
+					MIMA.akku = MIMAWORD(~MIMA.akku);
+					print_state("NOT", false, MIMA.ir, output);
+					break;
+				case 0x2: //RAR
+					MIMA.akku = ((MIMA.akku & 1) << 23 | MIMA.akku >> 1);
+					print_state("RAR", false, MIMA.ir, output);
+					break;
+				default: //FAIL
+					printf("OP %X, EXOP %X ", OPCODE(MIMA.ir->value), EXTOPCODE(MIMA.ir->value));
+					print_state("FAIL", false, MIMA.ir, output);
+					break;
+			}
+			break;
+	}
+	return 0;
 }
 
 int main(int argc, char* argv[]){
-	//init memory
-	MEMORY.top=&MEMORY.bottom;
-	MEMORY.bottom.next=NULL;
-	MEMORY.bottom.prev=NULL;
-	MEMORY.bottom.mempos=0;
-	MEMORY.bottom.value=0;
-	MEMORY.bottom.name=NULL;
-
+	FILE* output = NULL;
+	size_t query_addr = 0;
 	if(argc<2){
 		printf("Usage: mimasim [-i] [-dv] [-v] [-b] [-e <entrypoint>] [-l <maxsteps>] <infile> [<outfile>]\n");
 		printf("\t-i\tInteractive execution\n");
@@ -299,157 +538,39 @@ int main(int argc, char* argv[]){
 		printf("\t-b\tEnable breakpoints (Drop into interactive mode upon HALT)\n");
 		return 0;
 	}
-	
-	char* infile=NULL;
-	char* outfile=NULL;
-	bool interact=false;
-	OPTIONS.verbose=false;
-	OPTIONS.dumpverbose=false;
-	OPTIONS.maxsteps=0;
-	OPTIONS.breakpoints=false;
-	ULONG entry=0;
-	int a;
-	
+
 	//parse arguments
-	for(a=1;a<argc;a++){
-		if(*argv[a]=='-'){
-			if(argv[a][1]=='i'||argv[a][1]=='I'){
-				printf("Using interactive mode\n");
-				interact=true;
-			}
-			else if(argv[a][1]=='d'||argv[a][1]=='D'){
-				if(argv[a][2]=='v'||argv[a][2]=='V'){
-					printf("Setting verbose dump flag\n");
-					OPTIONS.dumpverbose=true;
-				}
-			}
-			else if(argv[a][1]=='v'||argv[a][1]=='V'){
-				printf("Increased verbosity\n");
-				OPTIONS.verbose=true;
-			}
-			else if(argv[a][1]=='e'||argv[a][1]=='E'){
-				if(argc>a+1){
-					entry=strtoul(argv[++a],NULL,0);
-					printf("Using entry point 0x%06X\n",entry);
-				}
-				else{
-					printf("Entry point flag was specified, but had no argument.\n");
-					return 1;
-				}
-			}
-			else if(argv[a][1]=='l'||argv[a][1]=='L'){
-				if(argc>a+1){
-					OPTIONS.maxsteps=strtoul(argv[++a],NULL,0);
-					printf("Doing %d steps at max\n",OPTIONS.maxsteps);
-				}
-				else{
-					printf("Limit steps flag was specified, but had no argument.\n");
-					return 1;
-				}
-			}
-			else if(argv[a][1]=='b'||argv[a][1]=='B'){
-				printf("Enabling breakpoint handling\n");
-				OPTIONS.breakpoints=true;
-			}
-			else{
-				printf("Unknown flag \"%s\"\n",argv[a]);
-			}
-		}
-		else{
-			if(!infile){
-				printf("Using input %s\n",argv[a]);
-				infile=argv[a];
-			}
-			else if(!outfile){
-				printf("Using output %s\n",argv[a]);
-				outfile=argv[a];
-			}
-			else{
-				printf("Could not assign parameter \"%s\"\n",argv[a]);
-			}
-		}
-	}
-	
-	//read input file
-	long filesize;
-	char* currentPos;
-	char* inputBuffer;
-
-	if(!infile){
-		printf("No input file\n");
-		return 1;
-	}
-	
-	input=fopen(infile,"rb");
-	if(!input){
-		printf("Could not open input file\n");
-		return 1;
+	if(args_parse(argc, argv)){
+		return EXIT_FAILURE;
 	}
 
-	if(outfile){
-		output=fopen(outfile,"wb");
+	if(!OPTIONS.input){
+		printf("Missing an input file\n");
+		return EXIT_FAILURE;
+	}
+
+	if(OPTIONS.output){
+		output = fopen(OPTIONS.output, "w");
 		if(!output){
-			fclose(input);
 			printf("Could not open output file\n");
 			return 1;
 		}
-		fputs("Reading memory from ",output);
-		fputs(infile,output);
-		fputs("... ",output);
-	}
-	
-	fseek(input,0,SEEK_END);
-	filesize=ftell(input);
-	rewind(input);
-	
-	if(filesize<0){
-		perror("Error reading input file: ");
-		return 1;
+		fprintf(output, "Reading memory from %s...", OPTIONS.input);
 	}
 
-	inputBuffer=(char*)malloc(filesize+1);
-	filesize=fread(inputBuffer,1,filesize,input);
-	inputBuffer[filesize]=0;//terminate buffer
-	currentPos=inputBuffer;
-	
-	while(currentPos<inputBuffer+filesize-2){
-		ULONG address=PARAMETER(strtoul(currentPos,&currentPos,0));
-		ULONG value=MIMAWORD(strtoul(currentPos,&currentPos,0));
-		//skip leading
-		for(;*currentPos!=';'&&*currentPos!='\n'&&*currentPos!=0;currentPos++){
-		}
-		
-		setcell(address,value);
-		
-		if(*currentPos==';'){
-			currentPos++;
-			ULONG clen=0;
-			for(;currentPos[clen]!=0&&currentPos[clen]!='\n';clen++){
-			}
-			//read comment
-			//store
-			MEMCELL* cur=getcell(address);
-			cur->name=(char*)malloc(clen+1);
-			strncpy(cur->name,currentPos,clen);
-			cur->name[clen]=0;
-			currentPos+=clen+1;
-		}
+	printf("Reading input file %s... ", OPTIONS.input);
+	if(scan_input()){
+		return EXIT_FAILURE;
 	}
-	
-	if(outfile){
-		fputs(" OK\r\n",output);
-		fprintf(output,"[%8s][%10s][%8s][%6s][%10s][%8s][%8s][%-20s]\r\n","STEP","LABEL","IR   ","OP  ","PARAMETER","AKKU  ","IAR  "," MEM");
-	}
-	
-	//simulation code goes here
-	MIMA.iar=entry;
-	MIMA.running=true;
-	MIMA.steps=1;
-	
-	MEMCELL* temp;
-	ULONG buf=0;
 
-	if(interact){
+	printf("done\n");
+	if(OPTIONS.output){
+		fputs(" OK\n", output);
+		fprintf(output, "[%8s][%10s][%8s][%6s][%10s][%8s][%8s][%-20s]\n", "STEP", "LABEL", "IR   ", "OP  ", "PARAMETER", "AKKU  ", "IAR  ", " MEM");
+	}
+
+	//print interactive mode help
+	if(OPTIONS.interact){
 		printf("Interactive mode commands:\n");
 		printf("\tq\t\tstop execution\n");
 		printf("\ta\t\tprint accumulator\n");
@@ -458,56 +579,48 @@ int main(int argc, char* argv[]){
 		printf("\tc\t\tcontinue execution\n");
 		printf("\tn\texecute next step\n");
 	}
-	
+
 	while(MIMA.running){
-		if(interact){
-			bool next=false;
-			bool quit=false;
-			//interactive shell
+		//interactive shell
+		if(OPTIONS.interact){
+			bool next = false, quit = false;
+
 			while(!next){
 				printf("> ");
-				switch(_GETCH_()){
+				switch(tolower(_GETCH_())){
 					case 'm':
-					case 'M':
 						printf("Addr ?> 0x");
-						unsigned addr=0;
 						fflush(stdin);
-						if(scanf("%x",&addr)!=EOF){
-							MEMCELL* temp=getcell(addr);
-							printf("0x%06X @ 0x%06X\n",temp->mempos,temp->value);
+						if(scanf("%zx", &query_addr) != EOF){
+							printf("0x%06zX @ 0x%06X\n", query_addr, getcell(query_addr)->value);
 						}
 						else{
-							printf(" !Failed\n");
+							printf(" failed\n");
 						}
 						break;
-				
+
 					case 'q':
-					case 'Q':
 						printf("\n");
-						next=true;
-						quit=true;
+						next = true;
+						quit = true;
 						break;
-					
+
 					case 'n':
-					case 'N':
-						next=true;
+						next = true;
 						break;
-					
+
 					case 'a':
-					case 'A':
-						printf("Akku: 0x%06X\n",MIMA.akku);
+						printf("Akku: 0x%06X\n", MIMA.akku);
 						break;
-						
+
 					case 'i':
-					case 'I':
-						printf(" IAR: 0x%06X\n",MIMA.iar);
+						printf(" IAR: 0x%06X\n", MIMA.iar);
 						break;
 
 					case 'c':
-					case 'C':
 						printf("\n");
-						interact=false;
-						next=true;
+						OPTIONS.interact = false;
+						next = true;
 						break;
 					case 10:
 					case 13:
@@ -518,129 +631,29 @@ int main(int argc, char* argv[]){
 						break;
 				}
 			}
-			
+
 			if(quit){
 				break;
 			}
 		}
-		
-		MIMA.ir=getcell(MIMA.iar++);
-		switch(OPCODE(MIMA.ir->value)){
-			case 0x0://LDC
-				MIMA.akku=PARAMETER(MIMA.ir->value);
-				printstate("LDC ",false,NULL);
-				break;
-			case 0x1://LDV
-				temp=getcell(PARAMETER(MIMA.ir->value));
-				MIMA.akku=temp->value;
-				printstate("LDV ",true,NULL);
-				break;
-			case 0x2://STV
-				setcell(PARAMETER(MIMA.ir->value),MIMA.akku);
-				printstate("STV ",true,getcell(PARAMETER(MIMA.ir->value)));
-				break;
-			case 0x3://ADD
-				temp=getcell(PARAMETER(MIMA.ir->value));
-				MIMA.akku=MIMAWORD(MIMA.akku+temp->value);
-				printstate("ADD ",true,NULL);
-				break;
-			case 0x4://AND
-				temp=getcell(PARAMETER(MIMA.ir->value));
-				MIMA.akku&=temp->value;
-				printstate("AND ",true,NULL);
-				break;
-			case 0x5://OR
-				temp=getcell(PARAMETER(MIMA.ir->value));
-				MIMA.akku|=temp->value;
-				printstate("OR ",true,NULL);
-				break;
-			case 0x6://XOR
-				temp=getcell(PARAMETER(MIMA.ir->value));
-				MIMA.akku^=temp->value;
-				printstate("XOR ",true,NULL);
-				break;
-			case 0x7://EQL
-				temp=getcell(PARAMETER(MIMA.ir->value));
-				MIMA.akku=(MIMA.akku==temp->value)?MIMAWORD(-1):0;
-				printstate("EQL ",true,NULL);
-				break;
-			case 0x8://JMP
-				MIMA.iar=PARAMETER(MIMA.ir->value);
-				printstate("JMP ",true,NULL);
-				break;
-			case 0x9://JMN
-				if((MIMA.akku&0x800000)!=0){
-					MIMA.iar=PARAMETER(MIMA.ir->value);
-				}
-				printstate("JMN ",true,NULL);
-				break;
-			case 0xA://LDIV
-				temp=getcell(PARAMETER(MIMA.ir->value));
-				MIMA.akku=getcell(temp->value)->value;
-				printstate("LDIV ",true,NULL);
-				break;
-			case 0xB://STIV
-				temp=getcell(PARAMETER(MIMA.ir->value));
-				setcell(temp->value,MIMA.akku);
-				printstate("STIV ",true,getcell(temp->value));
-				break;
-			case 0xC://JMS
-				setcell(PARAMETER(MIMA.ir->value),MIMA.iar);
-				MIMA.iar=PARAMETER(MIMA.ir->value)+1;
-				printstate("JMS ",true,getcell(PARAMETER(MIMA.ir->value)));
-				break;
-			case 0xD://JIND
-				temp=getcell(PARAMETER(MIMA.ir->value));
-				MIMA.iar=PARAMETER(temp->value);
-				printstate("JIND ",true,NULL);
-				break;
-			case 0xF:
-				switch(EXTOPCODE(MIMA.ir->value)){
-					case 0x0://HALT
-						printstate("HALT ",false,MIMA.ir);//FIXME ugly
-						if(!OPTIONS.breakpoints){
-							MIMA.running=false;
-						}
-						else{
-							printf("M: Breakpoint hit, going interactive. Press 'c' to resume.\n");
-							interact=true;
-						}
-						break;
-					case 0x1://NOT
-						MIMA.akku=MIMAWORD(~MIMA.akku);
-						printstate("NOT ",false,MIMA.ir);
-						break;
-					case 0x2://RAR
-						buf=MIMA.akku&1;
-						MIMA.akku>>=1;
-						buf<<=23;
-						MIMA.akku|=buf;
-						printstate("RAR ",false,MIMA.ir);
-						break;
-					default://FAIL
-						printf("OP %X, EXOP %X ",OPCODE(MIMA.ir->value),EXTOPCODE(MIMA.ir->value));
-						printstate("FAIL ",false,MIMA.ir);
-						break;
-				}
-				break;
-		}
-		if(MIMA.steps==OPTIONS.maxsteps){//wont fire if 0
+
+		simulate_step(output);
+
+		if(MIMA.steps == OPTIONS.maxsteps){ //wont fire if 0
 			printf("> Reached allowed step limit, aborting\n");
 			break;
 		}
 		MIMA.steps++;
 	}
-	
-	if(interact){
+
+	if(OPTIONS.interact){
 		printf("> Execution stopped\n");
 		_GETCH_();
 	}
-	
+
 	freemem();
-	fclose(input);
 	if(output){
 		fclose(output);
 	}
-	free(inputBuffer);
-	return 0;
+	return EXIT_SUCCESS;
 }
