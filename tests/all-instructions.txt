@@ -1,0 +1,59 @@
+DS 1		; Store some random data
+DS 2
+DS $10
+DS 0
+DS 5
+DS 4
+RESULT:	DS $DEAD; Should be 0xC001 upon exit
+
+		; 2 Blank lines
+* = $100	; Reorg
+LDC $1		; Akku = 1
+STV 1		; [1] = 1
+LDV 2		; Akku = [2] = 16
+ADD 0		; Akku = 16 + [0] = 17
+AND 0		; Akku = 1
+NOT		; Akku = 0xFFFFFE
+OR 0		; Akku = 0xFFFFFF
+JMN JMN_OK	; Check JMN
+JMN_FAIL: HALT	; JMN did not correctly jump when Akku was negative
+JMN_OK:		; Implicit LDC 0
+XOR 2		; Akku = 16
+EQL 2		; Akku = -1
+JMN EQL_OK	; Test EQL result
+EQL_FAIL: HALT	; EQL did not set Akku correctly
+EQL_OK: EQL 3	; Akku = 0
+JMN EQL_FAIL	; This should not jump
+JMP JMP_OK	; Test JMP
+JMP_FAIL: HALT	; JMP did not correctly set IAR
+JMP_OK:		; Implicit LDC 0
+LDC 16		; Akku = 16
+RAR		; Akku = 8
+RAR		; Akku = 4
+RAR		; Akku = 2
+RAR		; Akku = 1
+RAR		; Akku = 0x800000
+JMN RAR_OK	; Akku should now be negative
+RAR_FAIL: HALT	; RAR failed to correctly rotate Akku
+RAR_OK:
+JMS SUB		; Test JMS
+SUBRET:		; Marker to test against in subroutine
+LDIV 4		; Akku = [[4]] = [5] = 4
+ADD 4		; Akku = 9
+STIV 5		; [[5]] = [4] = 9
+EQL 4		; Akku = -1
+JMN DONE	; All tests done
+STIV_FAIL: HALT	; Either LDIV or STIV failed
+
+SUB:		; Return address stored here
+LDC SUBRET	; Load expected return address
+EQL SUB		; Compare to stored address
+JMN JMS_OK
+JMS_FAIL: HALT	; JMS did not store return address
+JMS_OK:
+JIND SUB	; Return from subroutine
+JIND_FAIL: HALT ; Failed to return from subroutine
+
+DONE: LDC $c001	; All passed
+STV RESULT
+HALT
