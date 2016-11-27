@@ -297,7 +297,7 @@ void freemem(){
 			free(cell->prev);
 		}
 
-		if(!(cell->next)){
+		if(!(cell->next) && cell != &MEMORY.bottom){
 			free(cell);
 			break;
 		}
@@ -391,6 +391,7 @@ int scan_input(){
 
 	if(filesize < 0){
 		perror("Error reading input file: ");
+		fclose(input);
 		return 1;
 	}
 
