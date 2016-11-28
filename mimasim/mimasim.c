@@ -100,7 +100,7 @@ struct /*MEM*/ {
 	MEMCELL bottom;
 	MEMCELL* top;
 } MEMORY = {
-	.bottom = {},
+	.bottom = {0},
 	.top = &MEMORY.bottom
 };
 
